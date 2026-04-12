@@ -11,7 +11,7 @@ import { TasksModule } from './tasks/tasks.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         host: config.get('DB_HOST'),
-        port: +config.get<number>('DB_PORT'),
+        port: parseInt(config.get('DB_PORT') ?? '5432', 10),
         username: config.get('DB_USERNAME'),
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_NAME'),
