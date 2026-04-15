@@ -18,6 +18,7 @@ export class TasksService {
 
   async findAll(): Promise<Task[]> {
     try {
+      // TypeORM .find() generates a parameterized SELECT — no SQL injection risk
       return await this.tasksRepository.find();
     } catch {
       throw new InternalServerErrorException('Failed to fetch tasks');
@@ -26,6 +27,7 @@ export class TasksService {
 
   async findOne(id: number): Promise<Task> {
     try {
+      // TypeORM .findOne() uses a parameterized WHERE clause — id is never interpolated
       const task = await this.tasksRepository.findOne({ where: { id } });
       if (!task) throw new NotFoundException(`Task #${id} not found`);
       return task;
@@ -37,6 +39,7 @@ export class TasksService {
 
   async create(dto: CreateTaskDto): Promise<Task> {
     try {
+      // .create() builds the entity, .save() issues a parameterized INSERT
       const task = this.tasksRepository.create(dto);
       return await this.tasksRepository.save(task);
     } catch {
@@ -46,7 +49,9 @@ export class TasksService {
 
   async update(id: number, dto: UpdateTaskDto): Promise<Task> {
     try {
-      await this.findOne(id); // throws 404 if not found before attempting update
+      // Verify the task exists before attempting the UPDATE
+      await this.findOne(id);
+      // .update() generates a parameterized UPDATE ... WHERE id = $1
       await this.tasksRepository.update(id, dto);
       return this.findOne(id);
     } catch (err) {
@@ -57,7 +62,9 @@ export class TasksService {
 
   async remove(id: number): Promise<void> {
     try {
-      await this.findOne(id); // throws 404 if not found before attempting delete
+      // Verify the task exists before attempting the DELETE
+      await this.findOne(id);
+      // .delete() generates a parameterized DELETE ... WHERE id = $1
       await this.tasksRepository.delete(id);
     } catch (err) {
       if (err instanceof NotFoundException) throw err;

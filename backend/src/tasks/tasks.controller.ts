@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { TasksService } from './tasks.service';
 import { Task } from './task.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,6 +18,8 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ParsePositiveIntPipe } from '../common/pipes/parse-positive-int.pipe';
 
+// All /tasks routes: max 60 requests per IP per minute (authenticated users only)
+@Throttle({ default: { ttl: 60_000, limit: 60 } })
 @UseGuards(JwtAuthGuard)
 @Controller('tasks')
 export class TasksController {

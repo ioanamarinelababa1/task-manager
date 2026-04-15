@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { registerUser } from '../lib/api';
-import { setToken, setUser } from '../lib/auth';
+import { setUser } from '../lib/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,8 +20,20 @@ export default function RegisterPage() {
       setError('Email and password are required.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter.');
+      return;
+    }
+    if (!/\d/.test(password)) {
+      setError('Password must contain at least one number.');
       return;
     }
     if (password !== confirm) {
@@ -32,7 +44,6 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const data = await registerUser(email, password);
-      setToken(data.access_token);
       setUser(data.user);
       router.replace('/');
     } catch (err) {
@@ -101,7 +112,7 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 chars, uppercase, lowercase, number"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
               />
             </div>

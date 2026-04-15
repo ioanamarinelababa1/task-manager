@@ -12,11 +12,13 @@ import { User } from './user.entity';
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
+    // Access-token JWT: short-lived (15 min) to limit damage if a token is stolen.
+    // Refresh tokens are signed separately in AuthService using JWT_REFRESH_SECRET.
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
+        signOptions: { expiresIn: '15m' },
       }),
       inject: [ConfigService],
     }),

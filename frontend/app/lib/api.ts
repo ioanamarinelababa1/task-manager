@@ -1,33 +1,59 @@
+/**
+ * All requests use `credentials: 'include'` so the browser automatically
+ * attaches the httpOnly access_token cookie. No token is ever read from or
+ * written to JavaScript-accessible storage.
+ *
+ * On a 401 the client silently calls POST /auth/refresh to get a new
+ * access token (the refresh token cookie is sent automatically) and retries
+ * the original request once. If the refresh also fails the user is redirected
+ * to /login.
+ */
 import { Task, TaskFormData, AuthResponse } from './types';
-import { getToken, clearToken } from './auth';
+import { clearUser } from './auth';
 
 const API_BASE = 'http://localhost:3001';
 
-function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const token = getToken();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extra };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return headers;
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-function handle401(res: Response): void {
+// ── Core fetch wrapper with silent token refresh ─────────────────────────────
+
+async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const opts: RequestInit = { ...options, credentials: 'include' };
+  let res = await fetch(url, opts);
+
   if (res.status === 401) {
-    clearToken();
-    window.location.replace('/login');
+    // Attempt a silent refresh using the refresh_token httpOnly cookie
+    const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (refreshRes.ok) {
+      // Retry original request — new access_token cookie is now set
+      res = await fetch(url, opts);
+    } else {
+      // Refresh token expired or invalid — force re-login
+      clearUser();
+      window.location.replace('/login');
+    }
   }
+
+  return res;
 }
 
-// ── Auth ────────────────────────────────────────────────────────────────────
+// ── Auth endpoints (no retry wrapper — handle errors directly) ───────────────
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    headers: JSON_HEADERS,
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Invalid credentials');
+    const msg = body.message;
+    throw new Error(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Invalid credentials'));
   }
   return res.json();
 }
@@ -35,55 +61,60 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 export async function registerUser(email: string, password: string): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    headers: JSON_HEADERS,
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? 'Registration failed');
+    const msg = body.message;
+    throw new Error(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Registration failed'));
   }
   return res.json();
 }
 
-// ── Tasks ───────────────────────────────────────────────────────────────────
+export async function logoutUser(): Promise<void> {
+  await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}
+
+export async function getMe(): Promise<{ id: number; email: string }> {
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Not authenticated');
+  return res.json();
+}
+
+// ── Task endpoints ────────────────────────────────────────────────────────────
 
 export async function fetchTasks(): Promise<Task[]> {
-  const res = await fetch(`${API_BASE}/tasks`, {
-    headers: authHeaders(),
-    cache: 'no-store',
-  });
-  handle401(res);
+  const res = await apiFetch(`${API_BASE}/tasks`);
   if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
   return res.json();
 }
 
 export async function createTask(data: TaskFormData): Promise<Task> {
-  const res = await fetch(`${API_BASE}/tasks`, {
+  const res = await apiFetch(`${API_BASE}/tasks`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: JSON_HEADERS,
     body: JSON.stringify(data),
   });
-  handle401(res);
   if (!res.ok) throw new Error(`Failed to create task: ${res.statusText}`);
   return res.json();
 }
 
 export async function updateTask(id: string, data: Partial<TaskFormData>): Promise<Task> {
-  const res = await fetch(`${API_BASE}/tasks/${id}`, {
+  const res = await apiFetch(`${API_BASE}/tasks/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: JSON_HEADERS,
     body: JSON.stringify(data),
   });
-  handle401(res);
   if (!res.ok) throw new Error(`Failed to update task: ${res.statusText}`);
   return res.json();
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/tasks/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  handle401(res);
+  const res = await apiFetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to delete task: ${res.statusText}`);
 }

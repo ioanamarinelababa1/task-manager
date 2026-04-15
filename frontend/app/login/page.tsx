@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginUser } from '../lib/api';
-import { setToken, setUser } from '../lib/auth';
+import { setUser } from '../lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,8 +22,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      // Token is set as an httpOnly cookie by the backend — never touches JS storage
       const data = await loginUser(email, password);
-      setToken(data.access_token);
       setUser(data.user);
       router.replace('/');
     } catch (err) {

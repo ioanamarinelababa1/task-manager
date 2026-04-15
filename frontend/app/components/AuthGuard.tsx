@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '../lib/auth';
+import { getMe } from '../lib/api';
+import { setUser } from '../lib/auth';
 
+/**
+ * Calls GET /auth/me to verify the httpOnly access_token cookie is still valid.
+ * On 401 (expired or missing token) redirects to /login.
+ * Shows a spinner during the check to prevent a flash of the authenticated UI.
+ */
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace('/login');
-    } else {
-      setReady(true);
-    }
+    getMe()
+      .then((user) => {
+        // Persist non-sensitive user info in sessionStorage for display purposes
+        setUser(user);
+        setReady(true);
+      })
+      .catch(() => router.replace('/login'));
   }, [router]);
 
   if (!ready) {

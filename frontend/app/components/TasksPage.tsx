@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Task, TaskFormData } from '../lib/types';
-import { createTask, deleteTask, fetchTasks, updateTask } from '../lib/api';
-import { clearToken, getUser } from '../lib/auth';
+import { createTask, deleteTask, fetchTasks, logoutUser, updateTask } from '../lib/api';
+import { clearUser, getUser } from '../lib/auth';
 import TaskCard from './TaskCard';
 import TaskModal from './TaskModal';
 import DeleteModal from './DeleteModal';
@@ -81,8 +81,10 @@ export default function TasksPage() {
     showToast('Task deleted.');
   }
 
-  function handleLogout() {
-    clearToken();
+  async function handleLogout() {
+    // Tell the backend to clear the httpOnly cookies server-side
+    await logoutUser().catch(() => {});
+    clearUser();
     router.replace('/login');
   }
 

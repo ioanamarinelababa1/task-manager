@@ -1,4 +1,12 @@
-const TOKEN_KEY = 'tm_token';
+/**
+ * Stores only non-sensitive display data (user id + email) in sessionStorage.
+ * JWTs are stored exclusively in httpOnly cookies set by the backend —
+ * they are never accessible from JavaScript, which eliminates the XSS
+ * attack vector that would exist if tokens were stored in localStorage.
+ *
+ * sessionStorage is used instead of localStorage so data is cleared
+ * automatically when the browser tab is closed.
+ */
 const USER_KEY = 'tm_user';
 
 export interface AuthUser {
@@ -6,24 +14,10 @@ export interface AuthUser {
   email: string;
 }
 
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-}
-
 export function getUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = sessionStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
     return null;
@@ -31,5 +25,9 @@ export function getUser(): AuthUser | null {
 }
 
 export function setUser(user: AuthUser): void {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function clearUser(): void {
+  sessionStorage.removeItem(USER_KEY);
 }
