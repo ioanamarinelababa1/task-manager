@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Task, TaskFormData } from '../lib/types';
 import { createTask, deleteTask, fetchTasks, updateTask } from '../lib/api';
+import { clearToken, getUser } from '../lib/auth';
 import TaskCard from './TaskCard';
 import TaskModal from './TaskModal';
 import DeleteModal from './DeleteModal';
@@ -30,6 +32,8 @@ function SkeletonCard() {
 }
 
 export default function TasksPage() {
+  const router = useRouter();
+  const user = getUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,6 +81,11 @@ export default function TasksPage() {
     showToast('Task deleted.');
   }
 
+  function handleLogout() {
+    clearToken();
+    router.replace('/login');
+  }
+
   const todoCount = tasks.filter((t) => t.status === 'TODO').length;
   const inProgressCount = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
   const doneCount = tasks.filter((t) => t.status === 'DONE').length;
@@ -107,18 +116,32 @@ export default function TasksPage() {
               </div>
               <div>
                 <h1 className="text-base font-semibold text-gray-900">Task Manager</h1>
-                <p className="text-xs text-gray-400 hidden sm:block">Manage your tasks</p>
+                {user && (
+                  <p className="text-xs text-gray-400 hidden sm:block truncate max-w-[180px]">{user.email}</p>
+                )}
               </div>
             </div>
-            <button
-              onClick={() => setModal({ type: 'create' })}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span>New Task</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setModal({ type: 'create' })}
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>New Task</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>

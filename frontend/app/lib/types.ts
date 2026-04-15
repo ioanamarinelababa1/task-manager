@@ -14,3 +14,8 @@ export interface TaskFormData {
   description: string;
   status: TaskStatus;
 }
+
+export interface AuthResponse {
+  access_token: string;
+  user: { id: number; email: string };
+}

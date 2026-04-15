@@ -1,5 +1,10 @@
+import AuthGuard from './components/AuthGuard';
 import TasksPage from './components/TasksPage';
 
 export default function Home() {
-  return <TasksPage />;
+  return (
+    <AuthGuard>
+      <TasksPage />
+    </AuthGuard>
+  );
 }
