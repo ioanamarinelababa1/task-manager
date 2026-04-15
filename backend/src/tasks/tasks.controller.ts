@@ -15,6 +15,7 @@ import { Task } from './task.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { ParsePositiveIntPipe } from '../common/pipes/parse-positive-int.pipe';
 
 @UseGuards(JwtAuthGuard)
 @Controller('tasks')
@@ -29,8 +30,8 @@ export class TasksController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string): Promise<Task> {
-    return this.tasksService.findOne(+id);
+  findOne(@Param('id', ParsePositiveIntPipe) id: number): Promise<Task> {
+    return this.tasksService.findOne(id);
   }
 
   @Post()
@@ -41,13 +42,16 @@ export class TasksController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  update(@Param('id') id: string, @Body() dto: UpdateTaskDto): Promise<Task> {
-    return this.tasksService.update(+id, dto);
+  update(
+    @Param('id', ParsePositiveIntPipe) id: number,
+    @Body() dto: UpdateTaskDto,
+  ): Promise<Task> {
+    return this.tasksService.update(id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.tasksService.remove(+id);
+  remove(@Param('id', ParsePositiveIntPipe) id: number): Promise<void> {
+    return this.tasksService.remove(id);
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './task.entity';
@@ -12,27 +16,52 @@ export class TasksService {
     private tasksRepository: Repository<Task>,
   ) {}
 
-  findAll(): Promise<Task[]> {
-    return this.tasksRepository.find();
+  async findAll(): Promise<Task[]> {
+    try {
+      return await this.tasksRepository.find();
+    } catch {
+      throw new InternalServerErrorException('Failed to fetch tasks');
+    }
   }
 
   async findOne(id: number): Promise<Task> {
-    const task = await this.tasksRepository.findOne({ where: { id } });
-    if (!task) throw new NotFoundException(`Task #${id} not found`);
-    return task;
+    try {
+      const task = await this.tasksRepository.findOne({ where: { id } });
+      if (!task) throw new NotFoundException(`Task #${id} not found`);
+      return task;
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new InternalServerErrorException('Failed to fetch task');
+    }
   }
 
-  create(dto: CreateTaskDto): Promise<Task> {
-    const task = this.tasksRepository.create(dto);
-    return this.tasksRepository.save(task);
+  async create(dto: CreateTaskDto): Promise<Task> {
+    try {
+      const task = this.tasksRepository.create(dto);
+      return await this.tasksRepository.save(task);
+    } catch {
+      throw new InternalServerErrorException('Failed to create task');
+    }
   }
 
   async update(id: number, dto: UpdateTaskDto): Promise<Task> {
-    await this.tasksRepository.update(id, dto);
-    return this.findOne(id);
+    try {
+      await this.findOne(id); // throws 404 if not found before attempting update
+      await this.tasksRepository.update(id, dto);
+      return this.findOne(id);
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new InternalServerErrorException('Failed to update task');
+    }
   }
 
   async remove(id: number): Promise<void> {
-    await this.tasksRepository.delete(id);
+    try {
+      await this.findOne(id); // throws 404 if not found before attempting delete
+      await this.tasksRepository.delete(id);
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new InternalServerErrorException('Failed to delete task');
+    }
   }
 }
