@@ -88,9 +88,21 @@ export default function TasksPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
-                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Notebook spine */}
+                  <rect x="4" y="3" width="3.5" height="18" rx="1.5" fill="#c4b5fd"/>
+                  {/* Notebook cover */}
+                  <rect x="6" y="3" width="14" height="18" rx="1.5" fill="white" opacity="0.95"/>
+                  {/* Spiral rings */}
+                  <circle cx="6" cy="7.5"  r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
+                  <circle cx="6" cy="12"   r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
+                  <circle cx="6" cy="16.5" r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
+                  {/* Text lines */}
+                  <rect x="9.5" y="7"  width="7"   height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
+                  <rect x="9.5" y="10" width="8.5" height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
+                  <rect x="9.5" y="13" width="6.5" height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
+                  <rect x="9.5" y="16" width="8"   height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
                 </svg>
               </div>
               <div>
