@@ -17,16 +17,6 @@ IN_PROGRESS → DONE with full control over every entry.
 - Clean Git workflow with conventional commits — readable project history
 - Deploy-ready on Vercel with zero configuration
 
-## Tech Stack
-| Layer | Technology |
-|-------|------------|
-| Backend | NestJS, TypeScript, TypeORM |
-| Database | PostgreSQL (Supabase) |
-| Frontend | Next.js 16, Tailwind CSS v4 |
-| Auth | JWT + bcryptjs |
-| Deploy | Vercel |
-| Version Control | Git + GitHub |
-
 ## Features
 - ✅ Full CRUD for tasks (Create, Read, Update, Delete)
 - ✅ Status badges (TODO / IN_PROGRESS / DONE)
@@ -94,6 +84,54 @@ Six animated skeleton cards are shown while the initial fetch is in flight, pres
 ### Toast Notifications
 A bottom-center toast slides in on every successful create, update, or delete action and auto-dismisses after 3 seconds.
 
+## Why This Architecture?
+
+Every decision in this project was made deliberately, not by default.
+
+**Separated frontend and backend** — keeping them as independent services mirrors how real production systems are built. The API can be consumed by a mobile app, a CLI, or a third-party client without touching the frontend. It also means each service can be deployed, scaled, and debugged independently.
+
+**NestJS over Express** — Express gives you full freedom, which in practice means every developer structures things differently. NestJS enforces modules, controllers, and services from the start — the same pattern used in enterprise Java (Spring) and .NET applications. The structure is the feature.
+
+**TypeORM over raw SQL** — database logic lives in TypeScript classes with decorators instead of string queries. The schema is version-controlled alongside the code, TypeScript catches type mismatches at compile time, and switching databases requires changing one config line rather than rewriting every query.
+
+**Next.js for the frontend** — it is the industry standard for React applications. File-based routing, server components, built-in optimisation, and first-class TypeScript support are all included without configuration. Starting with Next.js means the frontend is already production-ready.
+
+**PostgreSQL on Supabase** — production-grade relational database, hosted in the cloud, free to start, no local Docker setup required. The connection string is the only thing that changes between development and production.
+
+**JWT authentication** — security is non-negotiable even in small projects. Stateless tokens mean the backend does not need to store sessions, any server instance can validate a request, and the frontend simply attaches a header to every call. Building it early also means every subsequent feature is built with auth in mind from day one.
+
+**Tailwind CSS** — utility classes eliminate the context-switching between TypeScript and CSS files. Styles live next to the markup they describe, there is no naming convention to invent, and the output is automatically purged to the minimum bytes needed.
+
+## What I Learned
+
+- Building a REST API from scratch with NestJS — understanding modules, dependency injection, guards, and decorators rather than just writing functions
+- Connecting a cloud PostgreSQL database with TypeORM — entity definitions, repository pattern, and letting `synchronize: true` manage schema migrations during development
+- Implementing JWT authentication with password hashing — the full cycle of registration (bcrypt hash), login (compare + sign), and route protection (Passport strategy + guard)
+- Managing a Git workflow with conventional commits — keeping history readable so every change has a clear reason attached to it
+- Handling CORS between separate frontend and backend services — understanding why the browser blocks cross-origin requests and how `enableCors()` at the NestJS bootstrap level resolves it
+- Debugging real connection issues — DNS resolution failures, port conflicts, and authentication errors are not abstract concepts anymore; they are problems with specific error messages and specific fixes
+
+## Challenges & Solutions
+
+**Supabase direct connection not resolving (`ENOTFOUND`)**
+The default direct connection URL (`db.<project>.supabase.co`) uses a hostname that is not publicly resolvable from all network environments. Switching to the Session Pooler URL (`aws-0-<region>.pooler.supabase.com`) routes through Supabase's connection pooler, which resolves consistently from any environment including local machines and CI.
+
+**CORS blocking frontend requests**
+The browser refused every request from `localhost:3000` to `localhost:3001` because the backend did not declare which origins it accepts. Adding `app.enableCors({ origin: 'http://localhost:3000' })` in `main.ts` before `app.listen()` tells NestJS to include the correct `Access-Control-Allow-Origin` header, and the browser allows the request through.
+
+**Port conflict between Next.js and NestJS**
+Both services defaulted to port 3000. The fix was explicit: `await app.listen(3001)` in `main.ts` for the backend, and `next dev` (which defaults to 3000) left unchanged for the frontend. The `API_BASE` constant in the frontend then points to `http://localhost:3001` to match.
+
+## Tech Stack
+| Layer | Technology |
+|-------|------------|
+| Backend | NestJS, TypeScript, TypeORM |
+| Database | PostgreSQL (Supabase) |
+| Frontend | Next.js 16, Tailwind CSS v4 |
+| Auth | JWT + bcryptjs |
+| Deploy | Vercel |
+| Version Control | Git + GitHub |
+
 ## API Endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -140,44 +178,6 @@ task-manager/
         ├── icon.svg      # Purple notebook favicon
         └── page.tsx
 ```
-
-## Why This Architecture?
-
-Every decision in this project was made deliberately, not by default.
-
-**Separated frontend and backend** — keeping them as independent services mirrors how real production systems are built. The API can be consumed by a mobile app, a CLI, or a third-party client without touching the frontend. It also means each service can be deployed, scaled, and debugged independently.
-
-**NestJS over Express** — Express gives you full freedom, which in practice means every developer structures things differently. NestJS enforces modules, controllers, and services from the start — the same pattern used in enterprise Java (Spring) and .NET applications. The structure is the feature.
-
-**TypeORM over raw SQL** — database logic lives in TypeScript classes with decorators instead of string queries. The schema is version-controlled alongside the code, TypeScript catches type mismatches at compile time, and switching databases requires changing one config line rather than rewriting every query.
-
-**Next.js for the frontend** — it is the industry standard for React applications. File-based routing, server components, built-in optimisation, and first-class TypeScript support are all included without configuration. Starting with Next.js means the frontend is already production-ready.
-
-**PostgreSQL on Supabase** — production-grade relational database, hosted in the cloud, free to start, no local Docker setup required. The connection string is the only thing that changes between development and production.
-
-**JWT authentication** — security is non-negotiable even in small projects. Stateless tokens mean the backend does not need to store sessions, any server instance can validate a request, and the frontend simply attaches a header to every call. Building it early also means every subsequent feature is built with auth in mind from day one.
-
-**Tailwind CSS** — utility classes eliminate the context-switching between TypeScript and CSS files. Styles live next to the markup they describe, there is no naming convention to invent, and the output is automatically purged to the minimum bytes needed.
-
-## What I Learned
-
-- Building a REST API from scratch with NestJS — understanding modules, dependency injection, guards, and decorators rather than just writing functions
-- Connecting a cloud PostgreSQL database with TypeORM — entity definitions, repository pattern, and letting `synchronize: true` manage schema migrations during development
-- Implementing JWT authentication with password hashing — the full cycle of registration (bcrypt hash), login (compare + sign), and route protection (Passport strategy + guard)
-- Managing a Git workflow with conventional commits — keeping history readable so every change has a clear reason attached to it
-- Handling CORS between separate frontend and backend services — understanding why the browser blocks cross-origin requests and how `enableCors()` at the NestJS bootstrap level resolves it
-- Debugging real connection issues — DNS resolution failures, port conflicts, and authentication errors are not abstract concepts anymore; they are problems with specific error messages and specific fixes
-
-## Challenges & Solutions
-
-**Supabase direct connection not resolving (`ENOTFOUND`)**
-The default direct connection URL (`db.<project>.supabase.co`) uses a hostname that is not publicly resolvable from all network environments. Switching to the Session Pooler URL (`aws-0-<region>.pooler.supabase.com`) routes through Supabase's connection pooler, which resolves consistently from any environment including local machines and CI.
-
-**CORS blocking frontend requests**
-The browser refused every request from `localhost:3000` to `localhost:3001` because the backend did not declare which origins it accepts. Adding `app.enableCors({ origin: 'http://localhost:3000' })` in `main.ts` before `app.listen()` tells NestJS to include the correct `Access-Control-Allow-Origin` header, and the browser allows the request through.
-
-**Port conflict between Next.js and NestJS**
-Both services defaulted to port 3000. The fix was explicit: `await app.listen(3001)` in `main.ts` for the backend, and `next dev` (which defaults to 3000) left unchanged for the frontend. The `API_BASE` constant in the frontend then points to `http://localhost:3001` to match.
 
 ## Author
 Ioana-Marinela Baba  
