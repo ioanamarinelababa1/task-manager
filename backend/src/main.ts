@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -33,6 +34,18 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true, // required so the browser sends httpOnly cookies cross-origin
   });
+
+  // ── Swagger: UI at /api, JSON spec at /api-json
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Task Manager API')
+    .setDescription('REST API for Task Manager — built with NestJS, TypeORM, PostgreSQL')
+    .setVersion('1.0')
+    .addTag('auth', 'Authentication — register, login, logout, token refresh')
+    .addTag('tasks', 'Task CRUD — create, read, update, delete tasks')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3001);
 }
