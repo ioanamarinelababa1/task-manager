@@ -141,6 +141,27 @@ Both services defaulted to port 3000. The fix was explicit: `await app.listen(30
 | PUT | /tasks/:id | Update task |
 | DELETE | /tasks/:id | Delete task |
 
+## API Documentation
+
+Interactive API documentation is available via Swagger UI.
+
+**Local development:**  
+http://localhost:3001/api
+
+**What you can do in Swagger:**
+- Browse all available endpoints with descriptions
+- See request body schemas and required fields
+- Test endpoints directly from the browser
+- Authenticate with JWT using the Authorize button (top right)
+- View all possible response codes and formats
+
+**Authentication in Swagger:**
+1. Call `POST /auth/register` to create an account
+2. Call `POST /auth/login` to get a token
+3. Click the **Authorize** button (top right)
+4. Enter: `Bearer <your_token>`
+5. All protected routes are now unlocked
+
 ## Getting Started
 
 ### Prerequisites
