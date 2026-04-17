@@ -4,6 +4,8 @@ A full-stack Task Manager application built with NestJS, PostgreSQL, and Next.js
 Designed to help users organize, track, and manage their daily tasks efficiently 
 through a clean REST API and a modern, responsive interface.
 
+[![CI](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml)
+
 ## Why Task Manager?
 Most people struggle with keeping track of what needs to be done, what's in progress, 
 and what's completed. Task Manager solves this by providing a simple but powerful 
