@@ -70,8 +70,11 @@ export class AuthService {
 
       // Use a constant-time comparison for both "user not found" and "wrong password"
       // to prevent timing attacks that distinguish between the two cases
-      const valid = user ? await bcrypt.compare(password, user.password) : false;
-      if (!user || !valid) throw new UnauthorizedException('Invalid credentials');
+      const valid = user
+        ? await bcrypt.compare(password, user.password)
+        : false;
+      if (!user || !valid)
+        throw new UnauthorizedException('Invalid credentials');
 
       return {
         access_token: this.signAccessToken(user.id, user.email),
@@ -92,7 +95,9 @@ export class AuthService {
       });
 
       // Confirm the user still exists in the database (account not deleted)
-      const user = await this.usersRepository.findOne({ where: { id: payload.sub } });
+      const user = await this.usersRepository.findOne({
+        where: { id: payload.sub },
+      });
       if (!user) throw new UnauthorizedException('User not found');
 
       return { access_token: this.signAccessToken(user.id, user.email) };

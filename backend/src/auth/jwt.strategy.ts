@@ -11,7 +11,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // Try the httpOnly cookie first (browser clients), fall back to Bearer header
       // (API clients such as Postman or cURL that cannot use cookies).
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req?.cookies?.['access_token'] ?? null,
+        (req: Request) => {
+          const cookies = req?.cookies as Record<string, string> | undefined;
+          return cookies?.['access_token'] ?? null;
+        },
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
@@ -19,8 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: number; email: string }) {
-    // Return value is attached to req.user by Passport
+  validate(payload: { sub: number; email: string }): {
+    id: number;
+    email: string;
+  } {
     return { id: payload.sub, email: payload.email };
   }
 }

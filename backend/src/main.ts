@@ -21,9 +21,9 @@ async function bootstrap() {
   // ── Global input validation: strip unknown fields, auto-transform types
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,           // strip properties not in the DTO
+      whitelist: true, // strip properties not in the DTO
       forbidNonWhitelisted: true, // reject requests that include unknown properties
-      transform: true,            // auto-cast route params / body to declared types
+      transform: true, // auto-cast route params / body to declared types
     }),
   );
 
@@ -38,7 +38,9 @@ async function bootstrap() {
   // ── Swagger: UI at /api, JSON spec at /api-json
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Task Manager API')
-    .setDescription('REST API for Task Manager — built with NestJS, TypeORM, PostgreSQL')
+    .setDescription(
+      'REST API for Task Manager — built with NestJS, TypeORM, PostgreSQL',
+    )
     .setVersion('1.0')
     .addTag('auth', 'Authentication — register, login, logout, token refresh')
     .addTag('tasks', 'Task CRUD — create, read, update, delete tasks')
@@ -49,4 +51,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3001);
 }
-bootstrap();
+void bootstrap();
