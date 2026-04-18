@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -16,58 +17,55 @@ export class TasksService {
     private tasksRepository: Repository<Task>,
   ) {}
 
-  async findAll(): Promise<Task[]> {
+  async findAll(userId: number): Promise<Task[]> {
     try {
-      // TypeORM .find() generates a parameterized SELECT — no SQL injection risk
-      return await this.tasksRepository.find();
+      return await this.tasksRepository.find({ where: { userId } });
     } catch {
       throw new InternalServerErrorException('Failed to fetch tasks');
     }
   }
 
-  async findOne(id: number): Promise<Task> {
+  async findOne(id: number, userId: number): Promise<Task> {
     try {
-      // TypeORM .findOne() uses a parameterized WHERE clause — id is never interpolated
       const task = await this.tasksRepository.findOne({ where: { id } });
       if (!task) throw new NotFoundException(`Task #${id} not found`);
+      if (task.userId !== userId) throw new ForbiddenException('Access denied');
       return task;
     } catch (err) {
-      if (err instanceof NotFoundException) throw err;
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
       throw new InternalServerErrorException('Failed to fetch task');
     }
   }
 
-  async create(dto: CreateTaskDto): Promise<Task> {
+  async create(dto: CreateTaskDto, userId: number): Promise<Task> {
     try {
-      // .create() builds the entity, .save() issues a parameterized INSERT
-      const task = this.tasksRepository.create(dto);
+      const task = this.tasksRepository.create({ ...dto, userId });
       return await this.tasksRepository.save(task);
     } catch {
       throw new InternalServerErrorException('Failed to create task');
     }
   }
 
-  async update(id: number, dto: UpdateTaskDto): Promise<Task> {
+  async update(id: number, dto: UpdateTaskDto, userId: number): Promise<Task> {
     try {
-      // Verify the task exists before attempting the UPDATE
-      await this.findOne(id);
-      // .update() generates a parameterized UPDATE ... WHERE id = $1
+      await this.findOne(id, userId);
       await this.tasksRepository.update(id, dto);
-      return this.findOne(id);
+      return this.findOne(id, userId);
     } catch (err) {
-      if (err instanceof NotFoundException) throw err;
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
       throw new InternalServerErrorException('Failed to update task');
     }
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, userId: number): Promise<void> {
     try {
-      // Verify the task exists before attempting the DELETE
-      await this.findOne(id);
-      // .delete() generates a parameterized DELETE ... WHERE id = $1
+      await this.findOne(id, userId);
       await this.tasksRepository.delete(id);
     } catch (err) {
-      if (err instanceof NotFoundException) throw err;
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
       throw new InternalServerErrorException('Failed to delete task');
     }
   }

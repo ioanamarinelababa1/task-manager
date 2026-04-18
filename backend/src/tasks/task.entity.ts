@@ -4,8 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { User } from '../auth/user.entity';
 
 export enum TaskStatus {
   TODO = 'TODO',
@@ -18,6 +21,14 @@ export class Task {
   @ApiProperty({ example: 1, description: 'Unique task identifier' })
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ApiProperty({ example: 1, description: 'ID of the user who owns this task' })
+  @Column()
+  userId: number;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   @ApiProperty({
     example: 'Buy groceries',
