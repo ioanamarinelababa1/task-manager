@@ -38,8 +38,15 @@ export class TasksController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all tasks for the authenticated user' })
-  @ApiResponse({ status: 200, description: 'Array of user tasks', type: [Task] })
-  @ApiResponse({ status: 401, description: 'Unauthorised — missing or invalid JWT' })
+  @ApiResponse({
+    status: 200,
+    description: 'Array of user tasks',
+    type: [Task],
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
   findAll(@Request() req: { user: { id: number } }): Promise<Task[]> {
     return this.tasksService.findAll(req.user.id);
   }
@@ -47,10 +54,20 @@ export class TasksController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single task by ID' })
-  @ApiParam({ name: 'id', description: 'Task ID (positive integer)', example: 1 })
+  @ApiParam({
+    name: 'id',
+    description: 'Task ID (positive integer)',
+    example: 1,
+  })
   @ApiResponse({ status: 200, description: 'The requested task', type: Task })
-  @ApiResponse({ status: 401, description: 'Unauthorised — missing or invalid JWT' })
-  @ApiResponse({ status: 403, description: 'Forbidden — task belongs to another user' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden — task belongs to another user',
+  })
   @ApiResponse({ status: 404, description: 'Task not found' })
   findOne(
     @Param('id', ParsePositiveIntPipe) id: number,
@@ -63,8 +80,14 @@ export class TasksController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new task' })
   @ApiResponse({ status: 201, description: 'The created task', type: Task })
-  @ApiResponse({ status: 400, description: 'Validation error — invalid request body' })
-  @ApiResponse({ status: 401, description: 'Unauthorised — missing or invalid JWT' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error — invalid request body',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
   create(
     @Body() dto: CreateTaskDto,
     @Request() req: { user: { id: number } },
@@ -75,11 +98,24 @@ export class TasksController {
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update an existing task' })
-  @ApiParam({ name: 'id', description: 'Task ID (positive integer)', example: 1 })
+  @ApiParam({
+    name: 'id',
+    description: 'Task ID (positive integer)',
+    example: 1,
+  })
   @ApiResponse({ status: 200, description: 'The updated task', type: Task })
-  @ApiResponse({ status: 400, description: 'Validation error — invalid request body' })
-  @ApiResponse({ status: 401, description: 'Unauthorised — missing or invalid JWT' })
-  @ApiResponse({ status: 403, description: 'Forbidden — task belongs to another user' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error — invalid request body',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden — task belongs to another user',
+  })
   @ApiResponse({ status: 404, description: 'Task not found' })
   update(
     @Param('id', ParsePositiveIntPipe) id: number,
@@ -92,10 +128,20 @@ export class TasksController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a task' })
-  @ApiParam({ name: 'id', description: 'Task ID (positive integer)', example: 1 })
+  @ApiParam({
+    name: 'id',
+    description: 'Task ID (positive integer)',
+    example: 1,
+  })
   @ApiResponse({ status: 204, description: 'Task deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorised — missing or invalid JWT' })
-  @ApiResponse({ status: 403, description: 'Forbidden — task belongs to another user' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden — task belongs to another user',
+  })
   @ApiResponse({ status: 404, description: 'Task not found' })
   remove(
     @Param('id', ParsePositiveIntPipe) id: number,

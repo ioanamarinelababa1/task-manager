@@ -52,7 +52,9 @@ describe('TasksService', () => {
       mockRepository.find.mockResolvedValue([mockTask]);
       const result = await service.findAll(1);
       expect(result).toEqual([mockTask]);
-      expect(mockRepository.find).toHaveBeenCalledWith({ where: { userId: 1 } });
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: 1 },
+      });
     });
   });
 
