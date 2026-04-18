@@ -18,6 +18,8 @@ IN_PROGRESS → DONE with full control over every entry.
 - Type-safe throughout — TypeScript on both frontend and backend
 - Clean Git workflow with conventional commits — readable project history
 - Deploy-ready on Vercel with zero configuration
+- CI/CD pipeline with GitHub Actions — every push is automatically tested
+- User data isolation — each user can only access their own tasks
 
 ## Features
 - ✅ Full CRUD for tasks (Create, Read, Update, Delete)
@@ -31,6 +33,8 @@ IN_PROGRESS → DONE with full control over every entry.
 - ✅ RESTful API with NestJS controllers and services
 - ✅ PostgreSQL database with TypeORM entity management
 - ✅ JWT authentication with bcrypt password hashing
+- ✅ User-specific tasks — each user sees only their own tasks
+- ✅ 403 Forbidden on unauthorized task access
 - 🔄 Deploy on Vercel (in progress)
 
 ## Screenshots
@@ -112,6 +116,8 @@ Every decision in this project was made deliberately, not by default.
 - Managing a Git workflow with conventional commits — keeping history readable so every change has a clear reason attached to it
 - Handling CORS between separate frontend and backend services — understanding why the browser blocks cross-origin requests and how `enableCors()` at the NestJS bootstrap level resolves it
 - Debugging real connection issues — DNS resolution failures, port conflicts, and authentication errors are not abstract concepts anymore; they are problems with specific error messages and specific fixes
+- Difference between authentication and authorization — JWT proves who you are, ownership checks prove what you can access
+- Setting up CI/CD with GitHub Actions — automated TypeScript, ESLint, Jest and build checks on every push
 
 ## Challenges & Solutions
 
