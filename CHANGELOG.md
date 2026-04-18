@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS hardening — only `http://localhost:3000` allowed, explicit methods and headers, `credentials: true`
 - Custom `ParsePositiveIntPipe` for route parameters
 - Swagger UI at `http://localhost:3001/api` and JSON spec at `http://localhost:3001/api-json`
+- User-specific tasks with ownership enforcement
+- 403 Forbidden response for cross-user task access
+- CI/CD GitHub Actions with parallel backend and frontend jobs
+- Dependency vulnerability review on Pull Requests
+- Unit tests for TasksService and AuthService (9 tests passing)
+- Swagger UI at `/api` with Bearer auth support
+- CONTRIBUTING.md and SECURITY.md documentation
 
 #### Frontend (Next.js)
 - Next.js 15 application with App Router and Tailwind CSS
