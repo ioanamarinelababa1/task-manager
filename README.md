@@ -5,6 +5,8 @@ Designed to help users organize, track, and manage their daily tasks efficiently
 through a clean REST API and a modern, responsive interface.
 
 [![CI](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/ioanamarinelababa1/task-manager)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 ## Live Demo
 
@@ -214,6 +216,25 @@ task-manager/
         ├── icon.svg      # Purple notebook favicon
         └── page.tsx
 ```
+
+## Contributing
+
+Contributions are welcome! Task Manager is open source and accepts PRs at all difficulty levels.
+
+- Read [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide: local setup, branch naming, commit conventions, and PR process.
+- Browse [ROADMAP.md](./ROADMAP.md) for ideas — the v0.2.0 items are all good first issues.
+- Found a bug? [Open a bug report](.github/ISSUE_TEMPLATE/bug_report.md). Have an idea? [Open a feature request](.github/ISSUE_TEMPLATE/feature_request.md).
+
+## Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for the full plan. Highlights:
+
+| Version | Theme | Examples |
+|---|---|---|
+| v0.2.0 | UI/UX | Dark mode, filters, search, sort |
+| v0.3.0 | Features | Comments, file attachments, recurring tasks |
+| v0.4.0 | Collaboration | Shared workspaces, task assignment, real-time updates |
+| v0.5.0 | Integrations | CSV export, calendar view, Slack, GitHub sync |
 
 ## Author
 Ioana-Marinela Baba  

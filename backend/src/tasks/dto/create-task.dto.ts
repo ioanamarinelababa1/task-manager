@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -7,7 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { TaskStatus } from '../task.entity';
+import { TaskPriority, TaskStatus } from '../task.entity';
 import { sanitizeString } from '../../common/utils/sanitize';
 
 export class CreateTaskDto {
@@ -41,4 +42,34 @@ export class CreateTaskDto {
   @IsEnum(TaskStatus, { message: 'Status must be TODO, IN_PROGRESS, or DONE' })
   @IsOptional()
   status?: TaskStatus;
+
+  @ApiProperty({
+    enum: TaskPriority,
+    example: TaskPriority.MEDIUM,
+    description: 'Task priority level — defaults to MEDIUM',
+    required: false,
+  })
+  @IsEnum(TaskPriority, { message: 'Priority must be LOW, MEDIUM, or HIGH' })
+  @IsOptional()
+  priority?: TaskPriority;
+
+  @ApiProperty({
+    example: '2026-05-01',
+    description: 'Optional due date (ISO 8601)',
+    required: false,
+  })
+  @IsDateString({}, { message: 'dueDate must be a valid ISO 8601 date string' })
+  @IsOptional()
+  dueDate?: string;
+
+  @ApiProperty({
+    example: 'Work',
+    description: 'Optional category tag (max 50 chars)',
+    required: false,
+  })
+  @Transform(({ value }) => sanitizeString(value))
+  @IsString()
+  @IsOptional()
+  @MaxLength(50, { message: 'Category must not exceed 50 characters' })
+  category?: string;
 }

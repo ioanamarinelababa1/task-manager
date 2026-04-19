@@ -1,4 +1,4 @@
-import { Task } from '../lib/types';
+import { Task, TaskPriority } from '../lib/types';
 import StatusBadge from './StatusBadge';
 
 interface TaskCardProps {
@@ -15,13 +15,37 @@ function formatDate(dateStr: string) {
   });
 }
 
+const PRIORITY_STYLES: Record<TaskPriority, { dot: string; label: string; badge: string }> = {
+  LOW:    { dot: 'bg-gray-400',   label: 'Low',    badge: 'bg-gray-100 text-gray-600' },
+  MEDIUM: { dot: 'bg-yellow-400', label: 'Medium', badge: 'bg-yellow-50 text-yellow-700' },
+  HIGH:   { dot: 'bg-red-500',    label: 'High',   badge: 'bg-red-50 text-red-700' },
+};
+
+function PriorityBadge({ priority }: { priority: TaskPriority }) {
+  const s = PRIORITY_STYLES[priority];
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${s.badge}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+      {s.label}
+    </span>
+  );
+}
+
 export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+  const isOverdue =
+    task.dueDate &&
+    new Date(task.dueDate) < new Date() &&
+    task.status !== 'DONE';
+
   return (
     <div className="group flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 hover:shadow-md hover:ring-gray-200 transition-all duration-200">
-      {/* Top row: badge + actions */}
+      {/* Top row: status + priority badges + action buttons */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <StatusBadge status={task.status} />
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusBadge status={task.status} />
+          <PriorityBadge priority={task.priority ?? 'MEDIUM'} />
+        </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <button
             onClick={() => onEdit(task)}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
@@ -50,18 +74,29 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
 
       {/* Description */}
       {task.description ? (
-        <p className="flex-1 text-sm text-gray-500 leading-relaxed line-clamp-3 mb-4">
+        <p className="flex-1 text-sm text-gray-500 leading-relaxed line-clamp-3 mb-3">
           {task.description}
         </p>
       ) : (
-        <p className="flex-1 text-sm text-gray-300 italic mb-4">No description</p>
+        <p className="flex-1 text-sm text-gray-300 italic mb-3">No description</p>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+      {/* Category tag */}
+      {task.category && (
+        <div className="mb-3">
+          <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+            {task.category}
+          </span>
+        </div>
+      )}
+
+      {/* Footer: created date + due date */}
+      <div className="flex items-center justify-between pt-3 border-t border-gray-50 gap-2 flex-wrap">
         <span className="text-xs text-gray-400">Created {formatDate(task.createdAt)}</span>
-        {task.updatedAt !== task.createdAt && (
-          <span className="text-xs text-gray-400">Updated {formatDate(task.updatedAt)}</span>
+        {task.dueDate && (
+          <span className={`text-xs font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+            Due {formatDate(task.dueDate)}
+          </span>
         )}
       </div>
     </div>

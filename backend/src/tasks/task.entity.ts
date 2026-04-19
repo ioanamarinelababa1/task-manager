@@ -16,6 +16,12 @@ export enum TaskStatus {
   DONE = 'DONE',
 }
 
+export enum TaskPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
 @Entity()
 export class Task {
   @ApiProperty({ example: 1, description: 'Unique task identifier' })
@@ -52,6 +58,33 @@ export class Task {
   })
   @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.TODO })
   status: TaskStatus;
+
+  @ApiProperty({
+    enum: TaskPriority,
+    example: TaskPriority.MEDIUM,
+    description: 'Task priority level — defaults to MEDIUM',
+    required: false,
+  })
+  @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
+  priority: TaskPriority;
+
+  @ApiProperty({
+    example: '2026-05-01T00:00:00.000Z',
+    description: 'Optional due date',
+    required: false,
+    nullable: true,
+  })
+  @Column({ type: 'timestamp', nullable: true })
+  dueDate: Date | null;
+
+  @ApiProperty({
+    example: 'Work',
+    description: 'Optional category tag (max 50 chars)',
+    required: false,
+    nullable: true,
+  })
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  category: string | null;
 
   @ApiProperty({
     example: '2026-04-17T10:00:00.000Z',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Task, TaskFormData, TaskStatus } from '../lib/types';
+import { Task, TaskFormData, TaskPriority, TaskStatus } from '../lib/types';
 
 interface TaskModalProps {
   task?: Task | null;
@@ -15,11 +15,20 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'DONE', label: 'Done' },
 ];
 
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+];
+
 export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
   const [form, setForm] = useState<TaskFormData>({
     title: task?.title ?? '',
     description: task?.description ?? '',
     status: task?.status ?? 'TODO',
+    priority: task?.priority ?? 'MEDIUM',
+    dueDate: task?.dueDate ? task.dueDate.slice(0, 10) : '',
+    category: task?.category ?? '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +49,13 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
     setError('');
     setSubmitting(true);
     try {
-      await onSubmit(form);
+      // Strip empty optional strings so the backend treats them as absent
+      const payload: TaskFormData = {
+        ...form,
+        dueDate: form.dueDate?.trim() || undefined,
+        category: form.category?.trim() || undefined,
+      };
+      await onSubmit(payload);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -49,6 +64,9 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
     }
   }
 
+  const inputCls =
+    'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -56,15 +74,12 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
       aria-modal="true"
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="text-lg font-semibold text-gray-900">
             {isEdit ? 'Edit Task' : 'New Task'}
           </h2>
@@ -90,6 +105,7 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
             </div>
           )}
 
+          {/* Title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
               Title <span className="text-red-500">*</span>
@@ -101,10 +117,11 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Enter task title"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={inputCls}
             />
           </div>
 
+          {/* Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -115,26 +132,74 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Describe the task (optional)"
               rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={`${inputCls} resize-none`}
             />
           </div>
 
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+          {/* Status + Priority */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}
+                className={`${inputCls} bg-white`}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+                Priority
+              </label>
+              <select
+                id="priority"
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
+                className={`${inputCls} bg-white`}
+              >
+                {PRIORITY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Due Date + Category */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <input
+                id="dueDate"
+                type="date"
+                value={form.dueDate ?? ''}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                className={inputCls}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <input
+                id="category"
+                type="text"
+                value={form.category ?? ''}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="e.g. Work, Personal"
+                maxLength={50}
+                className={inputCls}
+              />
+            </div>
           </div>
 
           {/* Actions */}
