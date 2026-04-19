@@ -1,4 +1,4 @@
-# Task Manager
+# Task Manager - Built by Ioana-Marinela Baba
 
 A full-stack Task Manager application built with NestJS, PostgreSQL, and Next.js. 
 Designed to help users organize, track, and manage their daily tasks efficiently 
