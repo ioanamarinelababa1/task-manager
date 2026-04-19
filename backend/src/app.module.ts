@@ -49,7 +49,7 @@ const isDev = process.env.NODE_ENV !== 'production';
         url: config.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: process.env.NODE_ENV !== 'production',
-        migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsRun: process.env.NODE_ENV === 'production',
         ssl: { rejectUnauthorized: false },
       }),
