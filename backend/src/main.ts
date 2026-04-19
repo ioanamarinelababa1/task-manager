@@ -10,7 +10,18 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ── Security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.)
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:"],
+        },
+      },
+    }),
+  );
 
   // ── Parse cookies so JwtStrategy can read the access_token cookie
   app.use(cookieParser());
