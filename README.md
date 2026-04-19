@@ -6,6 +6,11 @@ through a clean REST API and a modern, responsive interface.
 
 [![CI](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml)
 
+## Live Demo
+
+- **Frontend:** https://task-manager-zeta-sepia.vercel.app
+- **API Documentation (Swagger):** https://task-manager-production-e05a.up.railway.app/api
+
 ## Why Task Manager?
 Most people struggle with keeping track of what needs to be done, what's in progress, 
 and what's completed. Task Manager solves this by providing a simple but powerful 
@@ -172,7 +177,9 @@ http://localhost:3001/api
 
 ## Getting Started
 
-### Prerequisites
+The app is live and requires no local setup — visit the [Live Demo](#live-demo) links above to try it immediately.
+
+### Prerequisites (local development only)
 - Node.js 20.x or higher
 - npm
 - A Supabase account (free tier works)
