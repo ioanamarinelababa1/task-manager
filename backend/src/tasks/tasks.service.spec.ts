@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { Task, TaskStatus } from './task.entity';
+import { Task, TaskPriority, TaskStatus } from './task.entity';
 import { User } from '../auth/user.entity';
 
 const mockTask: Task = {
@@ -12,6 +12,9 @@ const mockTask: Task = {
   title: 'Test task',
   description: 'A description',
   status: TaskStatus.TODO,
+  priority: TaskPriority.MEDIUM,
+  dueDate: null,
+  category: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
