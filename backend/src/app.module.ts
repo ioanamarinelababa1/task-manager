@@ -3,14 +3,40 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { LoggerModule } from 'nestjs-pino';
 import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
+
+const isDev = process.env.NODE_ENV !== 'production';
 
 @Module({
   imports: [
     // ConfigModule makes process.env values available via ConfigService throughout the app.
     // isGlobal:true means it does not need to be re-imported in every feature module.
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Structured logging via Pino. Pretty-prints in dev; emits JSON in production.
+    // Sensitive fields are redacted before any log line is written.
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+        transport: isDev
+          ? {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                translateTime: 'SYS:standard',
+                ignore: 'pid',
+              },
+            }
+          : undefined,
+        redact: [
+          'req.headers.authorization',
+          'req.body.password',
+          'req.body.token',
+        ],
+      },
+    }),
 
     // TypeORM connects to the PostgreSQL database specified by DATABASE_URL.
     // autoLoadEntities picks up every entity registered with TypeOrmModule.forFeature().
