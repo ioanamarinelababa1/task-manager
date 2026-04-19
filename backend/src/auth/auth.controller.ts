@@ -29,11 +29,15 @@ interface AuthenticatedRequest extends Request {
   user: { id: number; email: string };
 }
 
-// Cookie configuration shared by both access and refresh token cookies
+// In production the frontend and backend are on different domains, so cookies
+// must use sameSite:'none' (requires secure:true). In development sameSite:'lax'
+// works for same-origin and does not require HTTPS.
+const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_BASE = {
-  httpOnly: true, // not accessible from JavaScript
-  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-  sameSite: 'strict' as const, // blocks cross-site request forgery
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
+  path: '/',
 };
 
 // All /auth routes: max 10 requests per IP per minute
@@ -132,8 +136,8 @@ export class AuthController {
     const cookies = req.cookies as Record<string, string | undefined>;
     // Revoke all DB tokens for this user; silently ignores invalid tokens
     await this.authService.logoutUser(cookies['refresh_token']);
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token', { path: '/auth/refresh' });
+    res.clearCookie('access_token', COOKIE_BASE);
+    res.clearCookie('refresh_token', COOKIE_BASE);
     return { message: 'Logged out' };
   }
 
@@ -166,11 +170,9 @@ export class AuthController {
       ...COOKIE_BASE,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
-    // Restrict refresh token cookie to /auth/refresh so it is not sent on every request
     res.cookie('refresh_token', refreshToken, {
       ...COOKIE_BASE,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/auth/refresh',
     });
   }
 }
