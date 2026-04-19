@@ -40,7 +40,8 @@ const isDev = process.env.NODE_ENV !== 'production';
 
     // TypeORM connects to the PostgreSQL database specified by DATABASE_URL.
     // autoLoadEntities picks up every entity registered with TypeOrmModule.forFeature().
-    // synchronize:true auto-creates/alters tables in development — disable in production.
+    // In development synchronize keeps the schema in sync automatically.
+    // In production, synchronize is off and migrationsRun applies pending migration files on boot.
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -48,6 +49,8 @@ const isDev = process.env.NODE_ENV !== 'production';
         url: config.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: process.env.NODE_ENV !== 'production',
+        migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+        migrationsRun: process.env.NODE_ENV === 'production',
         ssl: { rejectUnauthorized: false },
       }),
       inject: [ConfigService],

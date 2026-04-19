@@ -90,7 +90,7 @@ The tighter login limit significantly slows credential-stuffing and brute-force 
 |---|---|---|
 | No token blacklist | A stolen access token remains valid for up to 15 minutes | Requires Redis; see Production section |
 | Refresh tokens are not rotated | If a refresh token is stolen, it is valid for 7 days | Rotation + revocation list (Redis) solves this |
-| `synchronize: true` in TypeORM | Schema changes apply automatically — safe in dev, dangerous in prod | Disable in production; use migrations |
+| `synchronize: true` in TypeORM (dev only) | Schema changes apply automatically in development — safe in dev, disabled in prod | Production uses `migrationsRun: true` with explicit migration files |
 | HTTP in development | Cookies do not have `Secure: true` locally | `Secure` is gated on `NODE_ENV === 'production'` |
 | Single allowed CORS origin | Hardcoded to `localhost:3000` | Must be configurable via environment variable for staging/production |
 | No audit logging | No record of who did what and when | Important for compliance |
@@ -105,7 +105,7 @@ The following would be added before deploying to a production environment:
 **Infrastructure**
 - [ ] HTTPS everywhere — `Secure` cookie attribute becomes active, HTTP→HTTPS redirect
 - [ ] Environment variables managed by the hosting platform (Vercel env vars, Railway secrets) — never in the repository
-- [ ] `synchronize: false` in TypeORM — use explicit migration files instead
+- [x] `synchronize: false` in TypeORM production — `migrationsRun: true` applies pending migrations on boot; migration files live in `src/migrations/`. Generate with `npm run migration:generate`, apply with `npm run migration:run`, roll back with `npm run migration:revert`.
 - [ ] Database connection pool limits configured to prevent exhaustion attacks
 
 **Token Management**
