@@ -160,9 +160,6 @@ Both services defaulted to port 3000. The fix was explicit: `await app.listen(30
 
 Interactive API documentation is available via Swagger UI.
 
-**Local development:**  
-http://localhost:3001/api
-
 **What you can do in Swagger:**
 - Browse all available endpoints with descriptions
 - See request body schemas and required fields
@@ -198,9 +195,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-Backend runs on: http://localhost:3001  
-Frontend runs on: http://localhost:3000
 
 ## Project Structure
 ```
