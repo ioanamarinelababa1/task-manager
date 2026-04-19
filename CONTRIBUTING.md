@@ -6,13 +6,31 @@ Thank you for taking the time to contribute. This guide covers everything you ne
 
 ## Table of Contents
 
+- [Good first issues](#good-first-issues)
 - [Running the project locally](#running-the-project-locally)
+- [How to submit a pull request](#how-to-submit-a-pull-request)
 - [Branch naming convention](#branch-naming-convention)
 - [Commit message convention](#commit-message-convention)
-- [Pull request process](#pull-request-process)
+- [PR checklist](#pr-checklist)
 - [Code style](#code-style)
 - [Running tests](#running-tests)
 - [Reporting a security vulnerability](#reporting-a-security-vulnerability)
+
+---
+
+## Good first issues
+
+New to the project? These are well-scoped, self-contained starting points that don't require deep knowledge of the codebase:
+
+| Feature | Where to look | Difficulty |
+|---|---|---|
+| **Dark mode toggle** | `frontend/app/` — add a `ThemeProvider` and a toggle button in the header | Easy |
+| **Filter tasks by status** | `frontend/app/` — add filter buttons above the task grid | Easy |
+| **Search tasks by title** | `frontend/app/` — client-side filter on the task list | Easy |
+| **Sort tasks by date** | `frontend/app/` — newest/oldest toggle on the task grid | Easy |
+| **Character counter on task title** | `frontend/app/components/` — show remaining characters in the create/edit modal | Easy |
+
+See [ROADMAP.md](./ROADMAP.md) for the full list including medium and hard issues.
 
 ---
 
@@ -112,19 +130,58 @@ Rules:
 
 ---
 
-## Pull request process
+## How to submit a pull request
 
-1. Create a branch from `main` following the naming convention above.
-2. Make focused, atomic commits — one logical change per commit.
-3. Open a pull request against `main` with:
-   - **Title** following Conventional Commits format
-   - **Description** covering:
-     - What changed and why
-     - How to test the change manually
-     - Links to related issues (`Closes #42`)
-4. Ensure the build passes before requesting a review.
-5. Address review feedback with new commits — do not force-push after a review has started.
-6. A pull request requires at least one approval before it can be merged.
+### Step 1 — Fork and clone
+
+```bash
+# Fork the repo on GitHub, then clone your fork
+git clone https://github.com/<your-username>/task-manager.git
+cd task-manager
+git remote add upstream https://github.com/ioanamarinelababa1/task-manager.git
+```
+
+### Step 2 — Create a branch
+
+```bash
+git checkout -b feature/dark-mode   # follow the branch naming convention below
+```
+
+### Step 3 — Make your changes
+
+- Write focused, atomic commits — one logical change per commit.
+- Follow the [commit message convention](#commit-message-convention).
+- Run `npm run lint` and `npm test` before pushing.
+
+### Step 4 — Keep your branch up to date
+
+```bash
+git fetch upstream
+git rebase upstream/main
+```
+
+### Step 5 — Open a pull request
+
+Push to your fork and open a PR against `main` on the upstream repo.
+Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md) — include what changed, why, and how to test it.
+
+### Step 6 — Review cycle
+
+- Address feedback with new commits — do not force-push after a review has started.
+- A PR requires at least one approval before it can be merged.
+
+---
+
+## PR checklist
+
+Before marking your PR ready for review, confirm all of the following:
+
+- [ ] `npm run lint:ci` passes with 0 errors
+- [ ] `npm test` passes with 0 failures
+- [ ] The PR description explains **why** the change is needed, not just what it does
+- [ ] New behaviour is covered by tests (unit or integration)
+- [ ] No secrets, tokens, or credentials appear anywhere in the diff
+- [ ] `CHANGELOG.md` or relevant docs updated if the change is user-facing
 
 ---
 
