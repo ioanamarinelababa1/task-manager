@@ -27,12 +27,15 @@ async function bootstrap() {
     }),
   );
 
-  // ── CORS: only the frontend origin, explicit methods and headers
+  // ── CORS: local dev + production frontend origin via FRONTEND_URL env var
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true, // required so the browser sends httpOnly cookies cross-origin
+    credentials: true,
   });
 
   // ── Swagger: UI at /api, JSON spec at /api-json
@@ -48,6 +51,13 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
+
+  const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      throw new Error(`Missing required environment variable: ${envVar}`);
+    }
+  }
 
   await app.listen(process.env.PORT ?? 3001);
 }
