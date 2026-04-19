@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { User } from './user.entity';
+import { RefreshToken } from './refresh-token.entity';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -20,14 +21,33 @@ const mockUser: User = {
   createdAt: new Date(),
 };
 
-const mockRepository = {
+const mockRefreshTokenRecord: RefreshToken = {
+  id: 1,
+  token: '$2a$10$hashedrefreshtoken',
+  userId: 1,
+  user: mockUser,
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  isRevoked: false,
+  createdAt: new Date(),
+};
+
+const mockUserRepository = {
   findOne: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
 };
 
+const mockRefreshTokenRepository = {
+  find: jest.fn(),
+  findOne: jest.fn(),
+  create: jest.fn(),
+  save: jest.fn(),
+  update: jest.fn(),
+};
+
 const mockJwtService = {
   sign: jest.fn().mockReturnValue('signed-token'),
+  verify: jest.fn(),
 };
 
 const mockConfigService = {
@@ -41,7 +61,11 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: getRepositoryToken(User), useValue: mockRepository },
+        { provide: getRepositoryToken(User), useValue: mockUserRepository },
+        {
+          provide: getRepositoryToken(RefreshToken),
+          useValue: mockRefreshTokenRepository,
+        },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -56,25 +80,32 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('creates a user with a hashed password', async () => {
-      mockRepository.findOne.mockResolvedValue(null);
-      mockRepository.create.mockImplementation(
+    it('creates a user and saves a hashed refresh token', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.create.mockImplementation(
         (data: Partial<User>) => data as User,
       );
-      mockRepository.save.mockImplementation((u: User) =>
-        Promise.resolve({ ...u, id: 1 }),
+      mockUserRepository.save.mockResolvedValue({ ...mockUser, id: 1 });
+      (bcrypt.hash as jest.Mock)
+        .mockResolvedValueOnce('hashed-password') // password hash
+        .mockResolvedValueOnce('hashed-refresh-token'); // token hash
+      mockJwtService.sign.mockReturnValue('signed-token');
+      mockRefreshTokenRepository.create.mockImplementation(
+        (data: Partial<RefreshToken>) => data as RefreshToken,
       );
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
-      mockJwtService.sign.mockReturnValue('access-token');
+      mockRefreshTokenRepository.save.mockResolvedValue(mockRefreshTokenRecord);
 
       const result = await service.register('test@example.com', 'plaintext');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('plaintext', 10);
+      expect(mockRefreshTokenRepository.create).toHaveBeenCalled();
+      expect(mockRefreshTokenRepository.save).toHaveBeenCalled();
       expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
     });
 
     it('throws ConflictException when email is already in use', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
       await expect(service.register('test@example.com', 'pw')).rejects.toThrow(
         ConflictException,
       );
@@ -83,21 +114,109 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('throws UnauthorizedException for wrong password', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
       await expect(
         service.login('test@example.com', 'wrongpw'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('returns accessToken on successful login', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
+    it('returns access and refresh tokens on successful login', async () => {
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-refresh-token');
       mockJwtService.sign.mockReturnValue('access-token');
+      mockRefreshTokenRepository.create.mockImplementation(
+        (data: Partial<RefreshToken>) => data as RefreshToken,
+      );
+      mockRefreshTokenRepository.save.mockResolvedValue(mockRefreshTokenRecord);
 
       const result = await service.login('test@example.com', 'correctpw');
+
       expect(result).toHaveProperty('access_token', 'access-token');
+      expect(result).toHaveProperty('refresh_token');
       expect(result.user).toEqual({ id: mockUser.id, email: mockUser.email });
+    });
+  });
+
+  describe('refreshTokens', () => {
+    it('rotates the refresh token and returns a new pair', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 1 });
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRefreshTokenRepository.find.mockResolvedValue([
+        mockRefreshTokenRecord,
+      ]);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      // save call for revoking old token + save call for new token
+      mockRefreshTokenRepository.save.mockResolvedValue(mockRefreshTokenRecord);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hashed-token');
+      mockRefreshTokenRepository.create.mockImplementation(
+        (data: Partial<RefreshToken>) => data as RefreshToken,
+      );
+      mockJwtService.sign.mockReturnValue('new-token');
+
+      const result = await service.refreshTokens('raw-refresh-token');
+
+      expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
+      // Old record should have been saved with isRevoked = true
+      expect(mockRefreshTokenRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ isRevoked: true }),
+      );
+    });
+
+    it('throws UnauthorizedException when JWT signature is invalid', async () => {
+      mockJwtService.verify.mockImplementation(() => {
+        throw new Error('invalid signature');
+      });
+      await expect(service.refreshTokens('bad-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throws UnauthorizedException when token is not found in DB', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 1 });
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRefreshTokenRepository.find.mockResolvedValue([]);
+
+      await expect(service.refreshTokens('raw-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('revokeAllRefreshTokens', () => {
+    it('marks all active tokens as revoked', async () => {
+      mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
+      await service.revokeAllRefreshTokens(1);
+      expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+        { userId: 1, isRevoked: false },
+        { isRevoked: true },
+      );
+    });
+  });
+
+  describe('logoutUser', () => {
+    it('does nothing when no token is provided', async () => {
+      await service.logoutUser(undefined);
+      expect(mockRefreshTokenRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('revokes all tokens when a valid token is provided', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 1 });
+      mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
+      await service.logoutUser('raw-refresh-token');
+      expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+        { userId: 1, isRevoked: false },
+        { isRevoked: true },
+      );
+    });
+
+    it('silently ignores an invalid refresh token on logout', async () => {
+      mockJwtService.verify.mockImplementation(() => {
+        throw new Error('invalid');
+      });
+      await expect(service.logoutUser('bad-token')).resolves.not.toThrow();
     });
   });
 });

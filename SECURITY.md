@@ -88,8 +88,8 @@ The tighter login limit significantly slows credential-stuffing and brute-force 
 
 | Limitation | Risk | Notes |
 |---|---|---|
-| No token blacklist | A stolen access token remains valid for up to 15 minutes | Requires Redis; see Production section |
-| Refresh tokens are not rotated | If a refresh token is stolen, it is valid for 7 days | Rotation + revocation list (Redis) solves this |
+| No token blacklist | A stolen access token remains valid for up to 15 minutes | Requires Redis or a fast DB lookup; see Production section |
+| Expired refresh token rows accumulate | Revoked/expired rows in `refresh_tokens` are never deleted | A scheduled cleanup job should purge rows where `expiresAt < NOW()` — see TODO below |
 | `synchronize: true` in TypeORM (dev only) | Schema changes apply automatically in development — safe in dev, disabled in prod | Production uses `migrationsRun: true` with explicit migration files |
 | HTTP in development | Cookies do not have `Secure: true` locally | `Secure` is gated on `NODE_ENV === 'production'` |
 | Single allowed CORS origin | Hardcoded to `localhost:3000` | Must be configurable via environment variable for staging/production |
@@ -109,9 +109,10 @@ The following would be added before deploying to a production environment:
 - [ ] Database connection pool limits configured to prevent exhaustion attacks
 
 **Token Management**
-- [ ] Redis for refresh token storage and revocation — enables true logout and rotation
-- [ ] Refresh token rotation — every refresh call invalidates the old refresh token and issues a new one
-- [ ] Token blacklist for access tokens on explicit logout — eliminates the 15-minute abuse window
+- [x] Refresh token rotation — every `/auth/refresh` call revokes the old DB record and issues a fresh pair; replay of a stolen token is rejected
+- [x] Refresh token revocation on logout — `POST /auth/logout` marks all active tokens for the user as `isRevoked: true` in the `refresh_tokens` table
+- [ ] Expired token cleanup (TODO) — add a `@nestjs/schedule` cron job (`@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)`) that runs `DELETE FROM refresh_tokens WHERE expires_at < NOW()` to prevent unbounded table growth
+- [ ] Token blacklist for access tokens on explicit logout — eliminates the 15-minute abuse window (requires Redis or similar)
 
 **Additional Hardening**
 - [ ] Content Security Policy (CSP) header via Helmet configuration — restricts which scripts/styles/fonts can load

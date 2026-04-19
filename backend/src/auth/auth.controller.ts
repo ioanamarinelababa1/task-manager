@@ -115,22 +115,23 @@ export class AuthController {
     const refreshToken = cookies['refresh_token'];
     if (!refreshToken) throw new UnauthorizedException('No refresh token');
 
-    const { access_token } = await this.authService.refreshTokens(refreshToken);
-    // Issue a new access token cookie — refresh token stays the same
-    res.cookie('access_token', access_token, {
-      ...COOKIE_BASE,
-      maxAge: 15 * 60 * 1000,
-    });
+    // Rotation: old token is revoked, a fresh pair is returned
+    const { access_token, refresh_token } =
+      await this.authService.refreshTokens(refreshToken);
+    this.setAuthCookies(res, access_token, refresh_token);
     return { message: 'Token refreshed' };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Log out — clears access and refresh token cookies',
+    summary: 'Log out — revokes refresh tokens and clears cookies',
   })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  logout(@Res({ passthrough: true }) res: Response) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const cookies = req.cookies as Record<string, string | undefined>;
+    // Revoke all DB tokens for this user; silently ignores invalid tokens
+    await this.authService.logoutUser(cookies['refresh_token']);
     res.clearCookie('access_token');
     res.clearCookie('refresh_token', { path: '/auth/refresh' });
     return { message: 'Logged out' };
