@@ -22,8 +22,10 @@ export interface TaskFormData {
   category?: string;
 }
 
-// access_token is no longer returned in the body — it is set as an httpOnly cookie
-// by the backend. Only non-sensitive user info is returned to the client.
+// The backend sets access_token as an httpOnly cookie (preferred path, XSS-safe).
+// It also returns the token in the body so that clients where cross-domain cookies
+// are blocked (iOS Safari ITP) can fall back to Authorization: Bearer header auth.
 export interface AuthResponse {
   user: { id: number; email: string };
+  access_token: string;
 }
