@@ -68,8 +68,9 @@ export class AuthController {
     const { access_token, refresh_token, user } =
       await this.authService.register(dto.email, dto.password);
     this.setAuthCookies(res, access_token, refresh_token);
-    // Return only non-sensitive user data — never return the raw token in the body
-    return { user };
+    // Also return the token in the body so clients where cross-domain cookies are
+    // blocked (iOS Safari ITP) can fall back to Authorization: Bearer header auth.
+    return { user, access_token };
   }
 
   // Tighter limit on login to slow credential-stuffing attacks
@@ -97,7 +98,7 @@ export class AuthController {
       dto.password,
     );
     this.setAuthCookies(res, access_token, refresh_token);
-    return { user };
+    return { user, access_token };
   }
 
   @Post('refresh')
