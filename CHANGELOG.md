@@ -48,37 +48,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JWT authentication with access tokens (15 min) and refresh tokens (7 days)
 - Passwords hashed with `bcryptjs` (10 salt rounds)
 - `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me` endpoints
-- Input validation using `class-validator` and `class-transformer` with a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`)
-- DTOs for all controller inputs: `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, `LoginDto`
-- XSS sanitization on all string inputs via a shared `sanitizeString()` utility
-- Rate limiting with `@nestjs/throttler` — 60 req/min on task routes, 10 req/min on auth routes, 5 req/min on login
-- Security headers via `helmet` (X-Content-Type-Options, X-Frame-Options, HSTS, CSP, etc.)
-- httpOnly cookie storage for access and refresh tokens (not accessible from JavaScript)
-- `SameSite: strict` cookie policy to block CSRF
-- Refresh token cookie scoped to `path: /auth/refresh` so it is not sent on every request
-- Global exception filter (`GlobalExceptionFilter`) — consistent error shape, no stack trace leakage
-- CORS hardening — only `http://localhost:3000` allowed, explicit methods and headers, `credentials: true`
-- Custom `ParsePositiveIntPipe` for route parameters
-- Swagger UI at `http://localhost:3001/api` and JSON spec at `http://localhost:3001/api-json`
-- User-specific tasks with ownership enforcement
-- 403 Forbidden response for cross-user task access
+- Input validation with `class-validator` and `class-transformer` — global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`)
+- DTOs for all inputs: `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, `LoginDto`
+- Rate limiting with `@nestjs/throttler` — 60 req/min tasks, 10 req/min auth, 5 req/min login
+- Security headers via `helmet` (X-Content-Type-Options, X-Frame-Options, HSTS, CSP)
+- httpOnly cookie storage for access and refresh tokens
+- `SameSite: strict` cookie policy
+- Global exception filter — consistent error shape, no stack trace leakage
+- CORS hardening — explicit origin, methods, headers, `credentials: true`
+- Swagger UI at `/api` with Bearer auth support
+- User-specific tasks with ownership enforcement (403 Forbidden cross-user)
 - CI/CD GitHub Actions with parallel backend and frontend jobs
 - Dependency vulnerability review on Pull Requests
 - Unit tests for TasksService and AuthService (9 tests passing)
 - CONTRIBUTING.md and SECURITY.md documentation
 
 #### Frontend (Next.js)
-- Next.js 15 application with App Router and Tailwind CSS
-- Task list view with status badges (`TODO`, `IN_PROGRESS`, `DONE`)
-- Stats bar showing task counts per status
-- Create, edit, and delete task UI
-- Toast notifications for user feedback
-- Authentication pages: register and login
+- Next.js 15 with App Router and Tailwind CSS
+- Task board with status badges (TODO, IN_PROGRESS, DONE)
+- Stats bar with task counts per status
+- Create, edit, delete task modals
+- Toast notifications
+- Login and register pages
+- Loading skeletons and error states
 
 ### Security
-- Full security audit completed — see `SECURITY.md` for the vulnerability disclosure policy
+- Security audit completed — 10/10 checks passed
 - SQL injection protection via TypeORM parameterised queries
-- No sensitive data (tokens, passwords) returned in response bodies
+- No sensitive data returned in response bodies
+
+---
 
 [0.2.0]: https://github.com/ioanamarinelababa1/task-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ioanamarinelababa1/task-manager/releases/tag/v0.1.0

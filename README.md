@@ -27,6 +27,7 @@ IN_PROGRESS → DONE with full control over every entry.
 - Deploy-ready on Vercel with zero configuration
 - CI/CD pipeline with GitHub Actions — every push is automatically tested
 - User data isolation — each user can only access their own tasks
+- Docker support — entire stack runs with docker-compose up, ensuring dev/prod environment parity
 
 ## Features
 - ✅ Full CRUD for tasks (Create, Read, Update, Delete)
@@ -222,6 +223,18 @@ npm run dev
 
 Backend runs on: http://localhost:3001  
 Frontend runs on: http://localhost:3000
+
+## Docker
+
+Run the entire stack with one command:
+
+```bash
+docker-compose up --build
+```
+
+This starts both services with the same configuration used in production, ensuring dev/prod parity — no "works on my machine" issues.
+
+> **Note:** Docker is for local development only. Production uses Railway (backend) and Vercel (frontend) with automatic deploys from GitHub.
 
 ## Project Structure
 ```
