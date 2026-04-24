@@ -1,4 +1,4 @@
-# Task Manager - Built by Ioana-Marinela Baba
+# Task Manager
 
 A full-stack Task Manager application built with NestJS, PostgreSQL, and Next.js. 
 Designed to help users organize, track, and manage their daily tasks efficiently 
@@ -122,7 +122,7 @@ Every decision in this project was made deliberately, not by default.
 ## What I Learned
 
 - Building a REST API from scratch with NestJS — understanding modules, dependency injection, guards, and decorators rather than just writing functions
-- Connecting a cloud PostgreSQL database with TypeORM — entity definitions, repository pattern, and letting `synchronize: true` manage schema migrations during development
+- Connecting a cloud PostgreSQL database with TypeORM — entity definitions, repository pattern, and using TypeORM migrations in production (`synchronize: false`) with `synchronize: true` only in development for fast iteration
 - Implementing JWT authentication with password hashing — the full cycle of registration (bcrypt hash), login (compare + sign), and route protection (Passport strategy + guard)
 - Managing a Git workflow with conventional commits — keeping history readable so every change has a clear reason attached to it
 - Handling CORS between separate frontend and backend services — understanding why the browser blocks cross-origin requests and how `enableCors()` at the NestJS bootstrap level resolves it
@@ -141,13 +141,16 @@ The browser refused every request from `localhost:3000` to `localhost:3001` beca
 **Port conflict between Next.js and NestJS**
 Both services defaulted to port 3000. The fix was explicit: `await app.listen(3001)` in `main.ts` for the backend, and `next dev` (which defaults to 3000) left unchanged for the frontend. The `API_BASE` constant in the frontend then points to `http://localhost:3001` to match.
 
+**iOS Safari authentication loop**
+iOS Safari's Intelligent Tracking Prevention (ITP) blocks cross-domain `Set-Cookie` headers. Since the frontend (vercel.app) and backend (railway.app) are on different domains, Safari never stores the httpOnly cookie, causing every request to appear unauthenticated. Fix: return `access_token` in the login response body as a fallback, store it in `sessionStorage`, and send it as an `Authorization: Bearer` header. The NestJS JWT strategy accepts both the cookie and the Bearer header transparently, so all other browsers continue using the secure httpOnly cookie path.
+
 ## Tech Stack
 | Layer | Technology |
 |-------|------------|
 | Backend | NestJS, TypeScript |
 | ORM | TypeORM with migrations — synchronize:false in production, migrationsRun:true, schema changes are versioned and reversible |
 | Database | PostgreSQL (Supabase) |
-| Frontend | Next.js 16, Tailwind CSS v4 |
+| Frontend | Next.js 16.2.3, Tailwind CSS v4 |
 | Auth | JWT + bcryptjs |
 | Deploy | Vercel (frontend) + Railway (backend) |
 | Version Control | Git + GitHub |
@@ -177,6 +180,11 @@ Current migrations:
 | POST | /tasks | Create new task |
 | PUT | /tasks/:id | Update task |
 | DELETE | /tasks/:id | Delete task |
+| POST | /auth/register | Create new account |
+| POST | /auth/login | Login, returns JWT cookie |
+| POST | /auth/refresh | Refresh token rotation |
+| POST | /auth/logout | Revoke all refresh tokens |
+| GET | /auth/me | Get current user |
 
 ## API Documentation
 
@@ -241,7 +249,9 @@ This starts both services with the same configuration used in production, ensuri
 task-manager/
 ├── backend/              # NestJS API
 │   └── src/
-│       ├── tasks/        # Tasks module (entity, controller, service)
+│       ├── auth/         # JWT auth, register, login, refresh, logout
+│       ├── tasks/        # Tasks CRUD with ownership enforcement
+│       ├── migrations/   # TypeORM migrations for production
 │       └── app.module.ts
 └── frontend/             # Next.js UI
     └── app/
