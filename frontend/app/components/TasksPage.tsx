@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Task, TaskFormData } from '../lib/types';
+import { Task, TaskFormData, TaskStatus } from '../lib/types';
 import { createTask, deleteTask, fetchTasks, logoutUser, updateTask } from '../lib/api';
 import { clearUser, getUser } from '../lib/auth';
 import TaskCard from './TaskCard';
@@ -39,6 +39,7 @@ export default function TasksPage() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [toast, setToast] = useState('');
+  const [filterStatus, setFilterStatus] = useState<TaskStatus | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -91,6 +92,15 @@ export default function TasksPage() {
   const todoCount = tasks.filter((t) => t.status === 'TODO').length;
   const inProgressCount = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
   const doneCount = tasks.filter((t) => t.status === 'DONE').length;
+
+  const filteredTasks = filterStatus ? tasks.filter((t) => t.status === filterStatus) : tasks;
+
+  const filterOptions: { label: string; value: TaskStatus | null; count: number; dot?: string }[] = [
+    { label: 'All', value: null, count: tasks.length },
+    { label: 'To Do', value: 'TODO', count: todoCount, dot: 'bg-gray-400' },
+    { label: 'In Progress', value: 'IN_PROGRESS', count: inProgressCount, dot: 'bg-blue-500' },
+    { label: 'Done', value: 'DONE', count: doneCount, dot: 'bg-green-500' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -180,6 +190,36 @@ export default function TasksPage() {
           </div>
         )}
 
+        {/* Filter buttons */}
+        {!loading && !error && tasks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {filterOptions.map(({ label, value, count, dot }) => {
+              const active = filterStatus === value;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setFilterStatus(value)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {dot && (
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-violet-200' : dot}`}
+                    />
+                  )}
+                  {label}
+                  <span className={`text-xs ${active ? 'text-violet-200' : 'text-gray-400'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Error state */}
         {error && (
           <div className="rounded-2xl bg-red-50 p-6 ring-1 ring-red-100 mb-8">
@@ -236,10 +276,23 @@ export default function TasksPage() {
           </div>
         )}
 
+        {/* Empty filter state */}
+        {!loading && !error && tasks.length > 0 && filteredTasks.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm text-gray-400 mb-3">No tasks match this filter.</p>
+            <button
+              onClick={() => setFilterStatus(null)}
+              className="text-sm font-medium text-violet-600 hover:text-violet-800 transition-colors"
+            >
+              Show all tasks
+            </button>
+          </div>
+        )}
+
         {/* Task grid */}
-        {!loading && !error && tasks.length > 0 && (
+        {!loading && !error && filteredTasks.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tasks.map((task) => (
+            {filteredTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
