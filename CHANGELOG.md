@@ -10,47 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] — 2026-04-24
 
 ### Added
-
-#### Backend (NestJS)
-- Task fields: `priority` (LOW/MEDIUM/HIGH, default MEDIUM), `dueDate` (optional), `category` (optional, max 50 chars)
-- Refresh token rotation with database storage — tokens hashed with bcrypt, revoked on logout and after each use
-- TypeORM migrations replacing `synchronize` in production (`migration:generate`, `migration:run`, `migration:revert`)
-- Pino structured logging with sensitive field redaction (`authorization`, `password`, `token`)
-- Dependabot configured for weekly automated dependency vulnerability updates (backend, frontend, GitHub Actions)
-- Bearer token fallback for iOS Safari cross-domain cookie blocking (ITP workaround)
-- Docker and docker-compose for local development environment parity
-
-#### Frontend (Next.js)
-- Priority badge on task cards (LOW=gray, MEDIUM=yellow, HIGH=red)
-- Due date and category fields in task create/edit modal
-- Bearer token sent via sessionStorage as fallback when cookies are blocked (iOS Safari)
-
-#### Testing
-- 38 automated tests (up from 9)
-- Ownership enforcement tests: ForbiddenException on cross-user findOne/update/remove
-- Data isolation tests: user cannot read or delete another user's tasks
-- Edge case tests: NotFoundException, empty results, default status
-- Auth security tests: password hashing verified, wrong credentials rejected, refresh token rotation confirmed
-- Coverage: auth.service.ts 94.6% statements / 97% lines, tasks.service.ts 81.6%
-
-#### DevOps & Open Source
+- Task fields: `priority` (LOW / MEDIUM / HIGH), `dueDate`, `category`
+- Refresh token rotation — each token is single-use; old token revoked on every refresh
+- TypeORM migrations replacing `synchronize: true` in production (`migration:generate`, `migration:run`, `migration:revert`)
+- Pino structured logging with sensitive field redaction
+- Dependabot configuration for automated weekly dependency vulnerability scans
+- Docker and `docker-compose` for local development environment parity
+- Bearer token fallback for iOS Safari cross-domain cookie blocking
+- Branch protection rules with required CI checks before merge
+- 38 unit tests (up from 9) covering ownership enforcement and security boundaries
+- Coverage: `auth.service` 94.6%, `tasks.service` 81.6%
+- Open source contribution setup: issue templates, PR template, ROADMAP.md
+- 5 GitHub Issues labelled `good first issue`
 - Live deployment: frontend on Vercel, backend on Railway
-- Swagger UI live at production URL
-- Branch protection with required CI checks before merge
-- GitHub Issue templates: feature_request.md, bug_report.md
-- Pull Request template with checklist
-- ROADMAP.md with versioned feature plan
-- 5 open Issues tagged `good first issue`
+- Swagger UI available at the production URL
 
 ### Fixed
-- iOS Safari authentication loop caused by cross-domain cookie blocking (ITP)
-- TypeORM migrations glob path in production (was resolving to wrong directory)
-- ESLint errors in test files (unsafe-any, prettier formatting)
-- Cookie `sameSite` configuration for cross-domain production auth
+- iOS Safari authentication loop caused by cross-domain cookie blocking
+- TypeORM migrations path resolution in production (`dist/migrations`)
+- ESLint `no-unsafe-assignment` and `no-unsafe-member-access` errors in test files
+- Cookie `sameSite` configuration for cross-domain production authentication
 
 ### Removed
-- `synchronize: true` in production — replaced by TypeORM migrations
-- Google OAuth 2.0 references — feature was planned but not implemented
+- Google OAuth 2.0 references (feature was never implemented)
+- `synchronize: true` in production (replaced by versioned migrations)
 
 ---
 
@@ -77,8 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-specific tasks with ownership enforcement (403 Forbidden cross-user)
 - CI/CD GitHub Actions with parallel backend and frontend jobs
 - Dependency vulnerability review on Pull Requests
-- 9 unit tests for TasksService and AuthService
-- CONTRIBUTING.md, SECURITY.md, CHANGELOG.md documentation
+- Unit tests for TasksService and AuthService (9 tests passing)
+- CONTRIBUTING.md and SECURITY.md documentation
 
 #### Frontend (Next.js)
 - Next.js 15 with App Router and Tailwind CSS
