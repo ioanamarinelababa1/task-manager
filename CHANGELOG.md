@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### In Progress
-- Google OAuth 2.0 login (`passport-google-oauth20`)
 - Vercel deployment for the Next.js frontend
 
 ---

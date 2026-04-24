@@ -84,7 +84,7 @@ npm run dev                         # starts on http://localhost:3000
 
 | Type | Pattern | Example |
 |---|---|---|
-| New feature | `feature/<short-description>` | `feature/google-oauth` |
+| New feature | `feature/<short-description>` | `feature/task-filters` |
 | Bug fix | `fix/<short-description>` | `fix/refresh-token-expiry` |
 | Chore / tooling | `chore/<short-description>` | `chore/update-dependencies` |
 | Documentation | `docs/<short-description>` | `docs/swagger-setup` |
@@ -116,7 +116,7 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 **Examples:**
 
 ```
-feat(auth): add Google OAuth 2.0 login
+feat(tasks): add task filtering by status
 fix(tasks): return 404 when task does not exist
 security(auth): rotate JWT secret and enforce httpOnly cookies
 docs(swagger): annotate tasks controller with ApiResponse decorators
