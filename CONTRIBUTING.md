@@ -229,6 +229,8 @@ Current coverage: `auth.service` 94.6%, `tasks.service` 81.6%.
 
 Coverage targets for new contributions: `auth.service` > 90%, `tasks.service` > 80%.
 
+Coverage is checked in CI on every PR — the pipeline runs `npm run test` automatically on push.
+
 ---
 
 ## Reporting a security vulnerability
