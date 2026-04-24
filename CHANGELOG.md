@@ -7,11 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.2.0] — 2026-04-24
 
-### In Progress
-- Google OAuth 2.0 login (`passport-google-oauth20`)
-- Vercel deployment for the Next.js frontend
+### Added
+
+#### Backend (NestJS)
+- Task fields: `priority` (LOW/MEDIUM/HIGH, default MEDIUM), `dueDate` (optional), `category` (optional, max 50 chars)
+- Refresh token rotation with database storage — tokens hashed with bcrypt, revoked on logout and after each use
+- TypeORM migrations replacing `synchronize` in production (`migration:generate`, `migration:run`, `migration:revert`)
+- Pino structured logging with sensitive field redaction (`authorization`, `password`, `token`)
+- Dependabot configured for weekly automated dependency vulnerability updates (backend, frontend, GitHub Actions)
+- Bearer token fallback for iOS Safari cross-domain cookie blocking (ITP workaround)
+- Docker and docker-compose for local development environment parity
+
+#### Frontend (Next.js)
+- Priority badge on task cards (LOW=gray, MEDIUM=yellow, HIGH=red)
+- Due date and category fields in task create/edit modal
+- Bearer token sent via sessionStorage as fallback when cookies are blocked (iOS Safari)
+
+#### Testing
+- 38 automated tests (up from 9)
+- Ownership enforcement tests: ForbiddenException on cross-user findOne/update/remove
+- Data isolation tests: user cannot read or delete another user's tasks
+- Edge case tests: NotFoundException, empty results, default status
+- Auth security tests: password hashing verified, wrong credentials rejected, refresh token rotation confirmed
+- Coverage: auth.service.ts 94.6% statements / 97% lines, tasks.service.ts 81.6%
+
+#### DevOps & Open Source
+- Live deployment: frontend on Vercel, backend on Railway
+- Swagger UI live at production URL
+- Branch protection with required CI checks before merge
+- GitHub Issue templates: feature_request.md, bug_report.md
+- Pull Request template with checklist
+- ROADMAP.md with versioned feature plan
+- 5 open Issues tagged `good first issue`
+
+### Fixed
+- iOS Safari authentication loop caused by cross-domain cookie blocking (ITP)
+- TypeORM migrations glob path in production (was resolving to wrong directory)
+- ESLint errors in test files (unsafe-any, prettier formatting)
+- Cookie `sameSite` configuration for cross-domain production auth
+
+### Removed
+- `synchronize: true` in production — replaced by TypeORM migrations
+- Google OAuth 2.0 references — feature was planned but not implemented
 
 ---
 
@@ -26,38 +65,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JWT authentication with access tokens (15 min) and refresh tokens (7 days)
 - Passwords hashed with `bcryptjs` (10 salt rounds)
 - `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me` endpoints
-- Input validation using `class-validator` and `class-transformer` with a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`)
-- DTOs for all controller inputs: `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, `LoginDto`
-- XSS sanitization on all string inputs via a shared `sanitizeString()` utility
-- Rate limiting with `@nestjs/throttler` — 60 req/min on task routes, 10 req/min on auth routes, 5 req/min on login
-- Security headers via `helmet` (X-Content-Type-Options, X-Frame-Options, HSTS, CSP, etc.)
-- httpOnly cookie storage for access and refresh tokens (not accessible from JavaScript)
-- `SameSite: strict` cookie policy to block CSRF
-- Refresh token cookie scoped to `path: /auth/refresh` so it is not sent on every request
-- Global exception filter (`GlobalExceptionFilter`) — consistent error shape, no stack trace leakage
-- CORS hardening — only `http://localhost:3000` allowed, explicit methods and headers, `credentials: true`
-- Custom `ParsePositiveIntPipe` for route parameters
-- Swagger UI at `http://localhost:3001/api` and JSON spec at `http://localhost:3001/api-json`
-- User-specific tasks with ownership enforcement
-- 403 Forbidden response for cross-user task access
+- Input validation with `class-validator` and `class-transformer` — global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`)
+- DTOs for all inputs: `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, `LoginDto`
+- Rate limiting with `@nestjs/throttler` — 60 req/min tasks, 10 req/min auth, 5 req/min login
+- Security headers via `helmet` (X-Content-Type-Options, X-Frame-Options, HSTS, CSP)
+- httpOnly cookie storage for access and refresh tokens
+- `SameSite: strict` cookie policy
+- Global exception filter — consistent error shape, no stack trace leakage
+- CORS hardening — explicit origin, methods, headers, `credentials: true`
+- Swagger UI at `/api` with Bearer auth support
+- User-specific tasks with ownership enforcement (403 Forbidden cross-user)
 - CI/CD GitHub Actions with parallel backend and frontend jobs
 - Dependency vulnerability review on Pull Requests
-- Unit tests for TasksService and AuthService (9 tests passing)
-- Swagger UI at `/api` with Bearer auth support
-- CONTRIBUTING.md and SECURITY.md documentation
+- 9 unit tests for TasksService and AuthService
+- CONTRIBUTING.md, SECURITY.md, CHANGELOG.md documentation
 
 #### Frontend (Next.js)
-- Next.js 15 application with App Router and Tailwind CSS
-- Task list view with status badges (`TODO`, `IN_PROGRESS`, `DONE`)
-- Stats bar showing task counts per status
-- Create, edit, and delete task UI
-- Toast notifications for user feedback
-- Authentication pages: register and login
+- Next.js 15 with App Router and Tailwind CSS
+- Task board with status badges (TODO, IN_PROGRESS, DONE)
+- Stats bar with task counts per status
+- Create, edit, delete task modals
+- Toast notifications
+- Login and register pages
+- Loading skeletons and error states
 
 ### Security
-- Full security audit completed — see `SECURITY.md` for the vulnerability disclosure policy
+- Security audit completed — 10/10 checks passed
 - SQL injection protection via TypeORM parameterised queries
-- No sensitive data (tokens, passwords) returned in response bodies
+- No sensitive data returned in response bodies
 
-[Unreleased]: https://github.com/ioanamarinelababa1/task-manager/compare/v0.1.0...HEAD
+---
+
+[0.2.0]: https://github.com/ioanamarinelababa1/task-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ioanamarinelababa1/task-manager/releases/tag/v0.1.0
