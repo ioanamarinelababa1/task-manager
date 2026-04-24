@@ -219,4 +219,77 @@ describe('AuthService', () => {
       await expect(service.logoutUser('bad-token')).resolves.not.toThrow();
     });
   });
+
+  describe('Security', () => {
+    it('register should hash password before saving (never store plain text)', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.create.mockImplementation(
+        (data: Partial<User>) => data as User,
+      );
+      mockUserRepository.save.mockResolvedValue({ ...mockUser, id: 1 });
+      (bcrypt.hash as jest.Mock)
+        .mockResolvedValueOnce('hashed-password')
+        .mockResolvedValueOnce('hashed-refresh-token');
+      mockJwtService.sign.mockReturnValue('signed-token');
+      mockRefreshTokenRepository.create.mockImplementation(
+        (data: Partial<RefreshToken>) => data as RefreshToken,
+      );
+      mockRefreshTokenRepository.save.mockResolvedValue(mockRefreshTokenRecord);
+
+      await service.register('test@example.com', 'plaintext');
+
+      expect(bcrypt.hash).toHaveBeenCalledWith('plaintext', 10);
+      const savedArgs = mockUserRepository.create.mock.calls[0][0];
+      expect(savedArgs.password).toBe('hashed-password');
+      expect(savedArgs.password).not.toBe('plaintext');
+    });
+
+    it('login should throw UnauthorizedException for non-existent email', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+      await expect(
+        service.login('ghost@example.com', 'anypassword'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('login should throw UnauthorizedException for wrong password even if user exists', async () => {
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      await expect(
+        service.login('test@example.com', 'wrongpassword'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('refresh should throw UnauthorizedException for revoked token', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 1 });
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      // DB returns empty because the revoked token is filtered by isRevoked: false
+      mockRefreshTokenRepository.find.mockResolvedValue([]);
+      await expect(service.refreshTokens('revoked-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('refresh should revoke old token and issue new one (rotation)', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 1 });
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRefreshTokenRepository.find.mockResolvedValue([
+        mockRefreshTokenRecord,
+      ]);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      mockRefreshTokenRepository.save.mockResolvedValue(mockRefreshTokenRecord);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hashed-token');
+      mockRefreshTokenRepository.create.mockImplementation(
+        (data: Partial<RefreshToken>) => data as RefreshToken,
+      );
+      mockJwtService.sign.mockReturnValue('new-token');
+
+      const result = await service.refreshTokens('raw-refresh-token');
+
+      expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
+      expect(mockRefreshTokenRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ isRevoked: true }),
+      );
+    });
+  });
 });
