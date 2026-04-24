@@ -21,7 +21,7 @@ IN_PROGRESS → DONE with full control over every entry.
 
 ## What makes it different?
 - Built with production-grade architecture (NestJS modules, services, controllers)
-- PostgreSQL database hosted on Supabase — cloud-native from day one
+- PostgreSQL on Supabase with TypeORM migrations — production-grade schema versioning, not synchronize
 - Type-safe throughout — TypeScript on both frontend and backend
 - Clean Git workflow with conventional commits — readable project history
 - Deploy-ready on Vercel with zero configuration
@@ -140,12 +140,30 @@ Both services defaulted to port 3000. The fix was explicit: `await app.listen(30
 ## Tech Stack
 | Layer | Technology |
 |-------|------------|
-| Backend | NestJS, TypeScript, TypeORM |
+| Backend | NestJS, TypeScript |
+| ORM | TypeORM with migrations — synchronize:false in production, migrationsRun:true, schema changes are versioned and reversible |
 | Database | PostgreSQL (Supabase) |
 | Frontend | Next.js 16, Tailwind CSS v4 |
 | Auth | JWT + bcryptjs |
 | Deploy | Vercel |
 | Version Control | Git + GitHub |
+
+## Database Migrations
+Schema changes are managed through TypeORM migrations, not synchronize.
+
+In production: `synchronize: false` + `migrationsRun: true`
+In development: `synchronize: true` for fast iteration
+
+Available commands:
+```
+npm run migration:generate  # Generate migration from entity changes
+npm run migration:run       # Apply pending migrations
+npm run migration:revert    # Rollback last migration
+```
+
+Current migrations:
+- `Migration1776592549839` — initial schema (task, users tables)
+- `AddRefreshTokens1776596439463` — refresh_tokens table with revocation
 
 ## API Endpoints
 | Method | Endpoint | Description |
@@ -179,7 +197,7 @@ http://localhost:3001/api
 
 ## Getting Started
 
-The app is live and requires no local setup — visit the [Live Demo](#live-demo) links above to try it immediately.
+The app is live — visit the [Live Demo](#live-demo) links above to try it immediately, or run it locally using the instructions below.
 
 ### Prerequisites (local development only)
 - Node.js 20.x or higher
