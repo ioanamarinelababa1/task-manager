@@ -239,7 +239,9 @@ describe('AuthService', () => {
       await service.register('test@example.com', 'plaintext');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('plaintext', 10);
-      const savedArgs = mockUserRepository.create.mock.calls[0][0];
+      const savedArgs = (
+        mockUserRepository.create.mock.calls as Array<[Partial<User>]>
+      )[0][0];
       expect(savedArgs.password).toBe('hashed-password');
       expect(savedArgs.password).not.toBe('plaintext');
     });

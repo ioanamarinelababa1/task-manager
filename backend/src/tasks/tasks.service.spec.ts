@@ -135,7 +135,9 @@ describe('TasksService', () => {
     it('findAll should only return tasks belonging to the requesting user', async () => {
       mockRepository.find.mockResolvedValue([mockTask]);
       const result = await service.findAll(1);
-      expect(mockRepository.find).toHaveBeenCalledWith({ where: { userId: 1 } });
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: 1 },
+      });
       expect(result).toEqual([mockTask]);
     });
 
