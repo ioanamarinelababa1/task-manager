@@ -7,10 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.2.0] — 2026-04-24
 
-### In Progress
-- Vercel deployment for the Next.js frontend
+### Added
+- Task fields: `priority` (LOW / MEDIUM / HIGH), `dueDate`, `category`
+- Refresh token rotation — each token is single-use; old token revoked on every refresh
+- TypeORM migrations replacing `synchronize: true` in production (`migration:generate`, `migration:run`, `migration:revert`)
+- Pino structured logging with sensitive field redaction
+- Dependabot configuration for automated weekly dependency vulnerability scans
+- Docker and `docker-compose` for local development environment parity
+- Bearer token fallback for iOS Safari cross-domain cookie blocking
+- Branch protection rules with required CI checks before merge
+- 38 unit tests (up from 9) covering ownership enforcement and security boundaries
+- Coverage: `auth.service` 94.6%, `tasks.service` 81.6%
+- Open source contribution setup: issue templates, PR template, ROADMAP.md
+- 5 GitHub Issues labelled `good first issue`
+- Live deployment: frontend on Vercel, backend on Railway
+- Swagger UI available at the production URL
+
+### Fixed
+- iOS Safari authentication loop caused by cross-domain cookie blocking
+- TypeORM migrations path resolution in production (`dist/migrations`)
+- ESLint `no-unsafe-assignment` and `no-unsafe-member-access` errors in test files
+- Cookie `sameSite` configuration for cross-domain production authentication
+
+### Removed
+- Google OAuth 2.0 references (feature was never implemented)
+- `synchronize: true` in production (replaced by versioned migrations)
 
 ---
 
@@ -42,7 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD GitHub Actions with parallel backend and frontend jobs
 - Dependency vulnerability review on Pull Requests
 - Unit tests for TasksService and AuthService (9 tests passing)
-- Swagger UI at `/api` with Bearer auth support
 - CONTRIBUTING.md and SECURITY.md documentation
 
 #### Frontend (Next.js)
@@ -58,5 +80,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQL injection protection via TypeORM parameterised queries
 - No sensitive data (tokens, passwords) returned in response bodies
 
-[Unreleased]: https://github.com/ioanamarinelababa1/task-manager/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/ioanamarinelababa1/task-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ioanamarinelababa1/task-manager/releases/tag/v0.1.0

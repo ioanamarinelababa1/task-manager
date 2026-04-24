@@ -38,11 +38,14 @@ IN_PROGRESS → DONE with full control over every entry.
 - ✅ Toast notifications on create, update, and delete
 - ✅ Responsive 3-column grid layout
 - ✅ RESTful API with NestJS controllers and services
-- ✅ PostgreSQL database with TypeORM entity management
+- ✅ PostgreSQL database with TypeORM migrations (synchronize:false in production)
 - ✅ JWT authentication with bcrypt password hashing
 - ✅ User-specific tasks — each user sees only their own tasks
 - ✅ 403 Forbidden on unauthorized task access
-- 🔄 Deploy on Vercel (in progress)
+- ✅ Live deployment — frontend on Vercel, backend on Railway
+- ✅ Docker support — full stack via docker-compose up
+- ✅ 38 automated tests — ownership enforcement and security boundary coverage
+- ✅ iOS Safari auth fix — Bearer token fallback for cross-domain cookies
 
 ## Screenshots
 
@@ -145,7 +148,7 @@ Both services defaulted to port 3000. The fix was explicit: `await app.listen(30
 | Database | PostgreSQL (Supabase) |
 | Frontend | Next.js 16, Tailwind CSS v4 |
 | Auth | JWT + bcryptjs |
-| Deploy | Vercel |
+| Deploy | Vercel (frontend) + Railway (backend) |
 | Version Control | Git + GitHub |
 
 ## Database Migrations
@@ -240,7 +243,7 @@ task-manager/
 Contributions are welcome! Task Manager is open source and accepts PRs at all difficulty levels.
 
 - Read [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide: local setup, branch naming, commit conventions, and PR process.
-- Browse [ROADMAP.md](./ROADMAP.md) for ideas — the v0.2.0 items are all good first issues.
+- Browse [ROADMAP.md](./ROADMAP.md) for ideas — the v0.3.0 items are all good first issues.
 - Found a bug? [Open a bug report](.github/ISSUE_TEMPLATE/bug_report.md). Have an idea? [Open a feature request](.github/ISSUE_TEMPLATE/feature_request.md).
 
 ## Roadmap
@@ -249,10 +252,10 @@ See [ROADMAP.md](./ROADMAP.md) for the full plan. Highlights:
 
 | Version | Theme | Examples |
 |---|---|---|
-| v0.2.0 | UI/UX | Dark mode, filters, search, sort |
-| v0.3.0 | Features | Comments, file attachments, recurring tasks |
-| v0.4.0 | Collaboration | Shared workspaces, task assignment, real-time updates |
-| v0.5.0 | Integrations | CSV export, calendar view, Slack, GitHub sync |
+| v0.3.0 | UI/UX | Dark mode, filters, search, sort |
+| v0.4.0 | Features | Comments, file attachments, recurring tasks |
+| v0.5.0 | Collaboration | Shared workspaces, task assignment, real-time updates |
+| v0.6.0 | Integrations | CSV export, calendar view, Slack, GitHub sync |
 
 ## Author
 Ioana-Marinela Baba  

@@ -78,6 +78,19 @@ npm install
 npm run dev                         # starts on http://localhost:3000
 ```
 
+### Alternative — Docker
+
+Run the full stack with a single command (no separate Node or npm setup required):
+
+```bash
+cp backend/.env.example backend/.env         # fill in DB credentials and JWT secrets
+cp frontend/.env.local.example frontend/.env.local
+docker-compose up --build
+```
+
+Backend runs on: http://localhost:3001  
+Frontend runs on: http://localhost:3000
+
 ---
 
 ## Branch naming convention
@@ -85,7 +98,8 @@ npm run dev                         # starts on http://localhost:3000
 | Type | Pattern | Example |
 |---|---|---|
 | New feature | `feature/<short-description>` | `feature/task-filters` |
-| Bug fix | `fix/<short-description>` | `fix/refresh-token-expiry` |
+| Bug fix | `fix/<short-description>` | `fix/mobile-safari-auth-cookie` |
+| Test | `test/<short-description>` | `test/add-ownership-tests` |
 | Chore / tooling | `chore/<short-description>` | `chore/update-dependencies` |
 | Documentation | `docs/<short-description>` | `docs/swagger-setup` |
 | Refactor | `refactor/<short-description>` | `refactor/auth-service` |
@@ -200,20 +214,20 @@ Before marking your PR ready for review, confirm all of the following:
 
 ## Running tests
 
-> **TODO:** Unit and integration test coverage is not yet complete. Tests will be added as the project matures.
-
-Once tests are available, run them with:
-
 ```bash
-# Backend — unit tests
+# Backend — run all 38 unit tests
 cd backend && npm run test
 
-# Backend — test coverage report
+# Backend — coverage report
 cd backend && npm run test:cov
 
 # Backend — end-to-end tests
 cd backend && npm run test:e2e
 ```
+
+Current coverage: `auth.service` 94.6%, `tasks.service` 81.6%.
+
+Coverage targets for new contributions: `auth.service` > 90%, `tasks.service` > 80%.
 
 ---
 
