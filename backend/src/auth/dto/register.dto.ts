@@ -1,12 +1,14 @@
 import { Transform } from 'class-transformer';
 import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
 
 export class RegisterDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Valid email address — normalised to lowercase',
   })
+  @SanitizeHtml()
   // Normalise email to lowercase so User@EXAMPLE.COM and user@example.com are the same identity
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim().toLowerCase() : value,

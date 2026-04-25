@@ -1,4 +1,3 @@
-import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
@@ -8,7 +7,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '../task.entity';
-import { sanitizeString } from '../../common/utils/sanitize';
+import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
 
 export class UpdateTaskDto {
   @ApiProperty({
@@ -16,7 +15,7 @@ export class UpdateTaskDto {
     description: 'Updated task title (max 255 chars)',
     required: false,
   })
-  @Transform(({ value }) => sanitizeString(value))
+  @SanitizeHtml()
   @IsString()
   @IsOptional()
   @MaxLength(255, { message: 'Title must not exceed 255 characters' })
@@ -27,7 +26,7 @@ export class UpdateTaskDto {
     description: 'Updated task description (max 1000 chars)',
     required: false,
   })
-  @Transform(({ value }) => sanitizeString(value))
+  @SanitizeHtml()
   @IsString()
   @IsOptional()
   @MaxLength(1000, { message: 'Description must not exceed 1000 characters' })
@@ -67,7 +66,7 @@ export class UpdateTaskDto {
     description: 'Updated category tag (max 50 chars)',
     required: false,
   })
-  @Transform(({ value }) => sanitizeString(value))
+  @SanitizeHtml()
   @IsString()
   @IsOptional()
   @MaxLength(50, { message: 'Category must not exceed 50 characters' })
