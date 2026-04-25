@@ -14,12 +14,16 @@ async function bootstrap() {
   // ── Security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.)
   app.use(
     helmet({
+      frameguard: {
+        action: 'deny',
+      },
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:'],
+          frameAncestors: ["'none'"],
         },
       },
     }),
