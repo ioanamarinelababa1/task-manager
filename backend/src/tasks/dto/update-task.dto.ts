@@ -59,7 +59,9 @@ export class UpdateTaskDto {
     required: false,
     nullable: true,
   })
-  @Transform(({ value }) => (value === '' ? undefined : value))
+  @Transform(({ value }): string | null | undefined =>
+    value === '' ? undefined : (value as string | null | undefined),
+  )
   @IsDateString({}, { message: 'dueDate must be a valid ISO 8601 date string' })
   @IsOptional()
   dueDate?: string | null;
