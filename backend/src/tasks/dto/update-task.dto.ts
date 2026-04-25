@@ -54,12 +54,16 @@ export class UpdateTaskDto {
 
   @ApiProperty({
     example: '2026-05-01',
-    description: 'Updated due date (ISO 8601)',
+    description: 'Updated due date (ISO 8601), or null to clear',
     required: false,
+    nullable: true,
   })
+  @Transform(({ value }): string | null | undefined =>
+    value === '' ? undefined : (value as string | null | undefined),
+  )
   @IsDateString({}, { message: 'dueDate must be a valid ISO 8601 date string' })
   @IsOptional()
-  dueDate?: string;
+  dueDate?: string | null;
 
   @ApiProperty({
     example: 'Work',
