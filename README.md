@@ -1,8 +1,6 @@
 # Task Manager
 
-A full-stack Task Manager application built with NestJS, PostgreSQL, and Next.js. 
-Designed to help users organize, track, and manage their daily tasks efficiently 
-through a clean REST API and a modern, responsive interface.
+Task Manager is a production-ready full-stack starter built with NestJS, PostgreSQL and Next.js. Everything you need is already configured: JWT authentication with refresh token rotation, TypeORM migrations, Docker, GitHub Actions CI/CD, and a 10/10 security audit. Clone it, run docker-compose up, and start building your feature — not your infrastructure.
 
 [![CI](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ioanamarinelababa1/task-manager/actions/workflows/ci.yml)
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/ioanamarinelababa1/task-manager)
@@ -10,8 +8,35 @@ through a clean REST API and a modern, responsive interface.
 
 ## Live Demo
 
-- **Frontend:** https://task-manager-zeta-sepia.vercel.app
-- **API Documentation (Swagger):** https://task-manager-production-e05a.up.railway.app/api
+> Live demo: [task-manager-zeta-sepia.vercel.app](https://task-manager-zeta-sepia.vercel.app)
+> A GIF demo is coming soon — contributions welcome!
+
+## Quick Start
+
+```bash
+git clone https://github.com/ioanamarinelababa1/task-manager.git
+cd task-manager
+cp backend/.env.example backend/.env  # add your DATABASE_URL and JWT secrets
+docker-compose up --build
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:3001
+# Swagger UI: http://localhost:3001/api
+```
+
+## What's Already Built For You
+
+Everything in this list is production-ready and tested — you don't need to build it:
+
+| Feature | Details |
+|---------|---------|
+| JWT Auth | Register, login, logout, refresh token rotation with DB revocation |
+| Security | Helmet, CORS, rate limiting, httpOnly cookies, XSS sanitization, clickjacking protection |
+| Database | PostgreSQL with TypeORM, migrations in production, synchronize in development |
+| Testing | 38 tests — ownership enforcement, security boundaries, auth flows |
+| CI/CD | GitHub Actions — TypeScript, ESLint, Jest, build checks on every push |
+| Docker | docker-compose up starts everything — no local Node.js setup required |
+| API Docs | Swagger UI auto-generated from decorators |
+| Error handling | Global exception filter, consistent error shape, no stack trace leakage |
 
 ## Why Task Manager?
 Most people struggle with keeping track of what needs to be done, what's in progress, 
@@ -20,14 +45,12 @@ system to organize work with real-time status tracking — moving tasks from TOD
 IN_PROGRESS → DONE with full control over every entry.
 
 ## What makes it different?
-- Built with production-grade architecture (NestJS modules, services, controllers)
-- PostgreSQL on Supabase with TypeORM migrations — production-grade schema versioning, not synchronize
-- Type-safe throughout — TypeScript on both frontend and backend
-- Clean Git workflow with conventional commits — readable project history
-- Deploy-ready on Vercel with zero configuration
-- CI/CD pipeline with GitHub Actions — every push is automatically tested
-- User data isolation — each user can only access their own tasks
-- Docker support — entire stack runs with docker-compose up, ensuring dev/prod environment parity
+- Production-grade from day one — no "I'll add auth later" technical debt
+- Migrations not synchronize — safe to deploy with real data immediately
+- Docker included — works on any machine with one command
+- Security audit passed — Helmet, rate limiting, XSS protection, httpOnly cookies
+- 38 real tests — not the NestJS defaults, actual security boundary verification
+- Open source with templates — Issues, PRs, branch protection already configured
 
 ## Features
 - ✅ Full CRUD for tasks (Create, Read, Update, Delete)
@@ -52,22 +75,6 @@ IN_PROGRESS → DONE with full control over every entry.
 
 ### Task Board
 The main view renders all tasks as cards in a responsive grid (1 column on mobile, 2 on tablet, 3 on desktop). Each card displays the task title, an optional description, a colored status badge, and the creation date. Edit and delete action buttons appear on hover.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  📓 Task Manager                          [ + New Task ]     │
-├─────────────────────────────────────────────────────────────┤
-│  12 Total  ● To Do 4  ● In Progress 5  ● Done 3   Refresh  │
-├───────────────┬───────────────┬─────────────────────────────┤
-│ ● To Do       │ ● In Progress │ ● Done                      │
-│ Design login  │ Build API     │ Set up DB                   │
-│ page mockups  │ endpoints     │                             │
-│               │               │ Created Apr 10, 2026        │
-│ Created ...   │ Created ...   │                  ✏️  🗑️     │
-├───────────────┼───────────────┼─────────────────────────────┤
-│  ...          │  ...          │  ...                        │
-└───────────────┴───────────────┴─────────────────────────────┘
-```
 
 ### Status Badges
 Three distinct color schemes make status immediately scannable at a glance:
@@ -260,6 +267,27 @@ task-manager/
         ├── icon.svg      # Purple notebook favicon
         └── page.tsx
 ```
+
+## How to Extend This Project
+
+This project is designed to be a starting point, not a finished product.
+
+**Add a new feature (example: comments on tasks):**
+1. Create the entity: `src/comments/comment.entity.ts`
+2. Generate module: `npx @nestjs/cli generate module comments`
+3. Generate controller and service: `nest g controller comments && nest g service comments`
+4. Generate migration: `npm run migration:generate`
+5. Add frontend component in `frontend/app/components/`
+
+**Add a new page (frontend):**
+- Pages live in `frontend/app/` — create a folder with `page.tsx`
+- API calls go in `frontend/app/lib/api.ts`
+- Types go in `frontend/app/lib/types.ts`
+
+**Swap the database:**
+- Change the TypeORM driver in `app.module.ts`
+- Update `DATABASE_URL` in `.env`
+- Regenerate migrations
 
 ## Contributing
 
