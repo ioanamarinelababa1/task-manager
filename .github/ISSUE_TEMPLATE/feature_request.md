@@ -1,8 +1,8 @@
 ---
 name: Feature request
-about: Suggest a new feature or improvement
-title: "feat: "
-labels: enhancement
+about: Suggest a new feature or improvement to the starter kit
+title: 'feat: '
+labels: enhancement, good first issue
 assignees: ""
 ---
 
