@@ -4,6 +4,17 @@ This document describes every security measure implemented in this project, the 
 
 ---
 
+## Security as a Starter Kit
+
+If you clone this project, all security measures are inherited automatically.
+
+**What you need to configure:** your own `JWT_SECRET` and `JWT_REFRESH_SECRET`  
+(generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+
+**What you get for free:** Helmet headers, rate limiting, XSS sanitization, httpOnly cookies, CORS, input validation, ownership enforcement.
+
+---
+
 ## Implemented Measures
 
 ### 1. Dependency Audit

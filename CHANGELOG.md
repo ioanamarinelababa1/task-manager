@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Branch protection rules with required CI checks before merge
 - 38 unit tests (up from 9) covering ownership enforcement and security boundaries
 - Coverage: `auth.service` 94.6%, `tasks.service` 81.6%
+- XSS sanitization via sanitize-html on all DTO string inputs
+- Clickjacking protection: X-Frame-Options DENY, CSP frameAncestors none
+- Permissions-Policy and Referrer-Policy headers on frontend
+- Explicit security headers in Next.js config
 - Open source contribution setup: issue templates, PR template, ROADMAP.md
 - 5 GitHub Issues labelled `good first issue`
 - Live deployment: frontend on Vercel, backend on Railway

@@ -1,12 +1,14 @@
 # Contributing to Task Manager
 
-Thank you for taking the time to contribute. This guide covers everything you need to get started.
+Task Manager is designed as a starter kit. The best contributions are new features that demonstrate how to extend the existing architecture — adding a new entity, a new endpoint, or a new frontend component.
 
 ---
 
 ## Table of Contents
 
 - [Good first issues](#good-first-issues)
+- [Adding a New Backend Feature](#adding-a-new-backend-feature)
+- [Adding a New Frontend Feature](#adding-a-new-frontend-feature)
 - [Running the project locally](#running-the-project-locally)
 - [How to submit a pull request](#how-to-submit-a-pull-request)
 - [Branch naming convention](#branch-naming-convention)
@@ -31,6 +33,30 @@ New to the project? These are well-scoped, self-contained starting points that d
 | **Character counter on task title** | `frontend/app/components/` — show remaining characters in the create/edit modal | Easy |
 
 See [ROADMAP.md](./ROADMAP.md) for the full list including medium and hard issues.
+
+---
+
+## Adding a New Backend Feature
+
+Follow these steps to add a new entity and endpoint (example: comments on tasks):
+
+1. **Create the entity** — `src/comments/comment.entity.ts` with `@Entity()` and `@Column()` decorators
+2. **Generate the module** — `npx @nestjs/cli generate module comments`
+3. **Generate controller and service** — `nest g controller comments && nest g service comments`
+4. **Create DTOs with validation** — `src/comments/dto/create-comment.dto.ts` using `class-validator` decorators and `@Transform` sanitization
+5. **Generate migration** — `npm run migration:generate -- src/migrations/AddComments` then review the generated file
+6. **Add tests** — cover ownership enforcement (403 on cross-user access) and the happy path
+7. **Open a PR** — fill in the PR template with what changed and how to test it
+
+---
+
+## Adding a New Frontend Feature
+
+1. **Create a page** — add a folder under `frontend/app/` with a `page.tsx` file; the folder name becomes the route
+2. **Add API calls** — extend `frontend/app/lib/api.ts` with the new fetch functions
+3. **Add types** — extend `frontend/app/lib/types.ts` with any new interfaces
+4. **Create components** — reusable UI pieces go in `frontend/app/components/`
+5. **Open a PR** — fill in the PR template with what changed and how to test it
 
 ---
 
