@@ -196,9 +196,7 @@ Current migrations:
 ## API Documentation
 
 Interactive API documentation is available via Swagger UI.
-
-**Local development:**  
-http://localhost:3001/api
+https://task-manager-production-e05a.up.railway.app/api
 
 **What you can do in Swagger:**
 - Browse all available endpoints with descriptions
