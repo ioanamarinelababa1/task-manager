@@ -71,6 +71,7 @@ export class UpdateTaskDto {
     description: 'Updated category tag (max 50 chars)',
     required: false,
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @SanitizeHtml()
   @IsString()
   @IsOptional()

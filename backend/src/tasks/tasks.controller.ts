@@ -122,6 +122,8 @@ export class TasksController {
     @Body() dto: UpdateTaskDto,
     @Request() req: { user: { id: number } },
   ): Promise<Task> {
+    // TODO: remove after confirming 400 is resolved in production
+    console.log('[UpdateTask] id=%d body=%s', id, JSON.stringify(dto));
     return this.tasksService.update(id, dto, req.user.id);
   }
 

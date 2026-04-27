@@ -127,12 +127,20 @@ export async function createTask(data: TaskFormData): Promise<Task> {
 }
 
 export async function updateTask(id: string, data: Partial<TaskFormData>): Promise<Task> {
+  // Strip undefined and empty-string values so the backend never receives invalid dueDate/category
+  const payload = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined && v !== ''),
+  );
   const res = await apiFetch(`${API_BASE}/tasks/${id}`, {
     method: 'PUT',
     headers: JSON_HEADERS,
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`Failed to update task: ${res.statusText}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = (body as { message?: string | string[] }).message;
+    throw new Error(Array.isArray(msg) ? msg.join(', ') : (msg ?? `Failed to update task: ${res.statusText}`));
+  }
   return res.json();
 }
 
