@@ -126,12 +126,14 @@ export async function createTask(data: TaskFormData): Promise<Task> {
   return res.json();
 }
 
-export async function updateTask(id: string, data: Partial<TaskFormData>): Promise<Task> {
+export async function updateTask(id: number, data: Partial<TaskFormData>): Promise<Task> {
   // Strip undefined and empty-string values so the backend never receives invalid dueDate/category
   const payload = Object.fromEntries(
     Object.entries(data).filter(([, v]) => v !== undefined && v !== ''),
   );
-  const res = await apiFetch(`${API_BASE}/tasks/${id}`, {
+  const url = `${API_BASE}/tasks/${String(id)}`;
+  console.log('[updateTask] id=%o url=%s body=%s', id, url, JSON.stringify(payload));
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers: JSON_HEADERS,
     body: JSON.stringify(payload),
@@ -144,7 +146,7 @@ export async function updateTask(id: string, data: Partial<TaskFormData>): Promi
   return res.json();
 }
 
-export async function deleteTask(id: string): Promise<void> {
-  const res = await apiFetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' });
+export async function deleteTask(id: number): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/tasks/${String(id)}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to delete task: ${res.statusText}`);
 }

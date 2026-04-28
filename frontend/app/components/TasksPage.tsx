@@ -70,7 +70,13 @@ export default function TasksPage() {
 
   async function handleUpdate(data: TaskFormData) {
     if (modal.type !== 'edit') return;
-    const updated = await updateTask(modal.task.id, data);
+    const taskId = modal.task.id;
+    console.log('[handleUpdate] task=%o body=%o', modal.task, data);
+    if (!taskId || typeof taskId !== 'number' || taskId <= 0) {
+      console.error('[handleUpdate] Invalid task id:', taskId);
+      return;
+    }
+    const updated = await updateTask(taskId, data);
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     showToast('Task updated successfully!');
   }
