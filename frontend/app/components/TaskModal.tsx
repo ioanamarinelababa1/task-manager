@@ -36,6 +36,21 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
 
   const isEdit = !!task;
 
+  // Reset error and re-sync form fields whenever the task being edited changes.
+  // This prevents a stale error (e.g. from a previous failed submission) from
+  // appearing when the modal opens for a different task without unmounting.
+  useEffect(() => {
+    setError('');
+    setForm({
+      title: task?.title ?? '',
+      description: task?.description ?? '',
+      status: task?.status ?? 'TODO',
+      priority: task?.priority ?? 'MEDIUM',
+      dueDate: task?.dueDate ? task.dueDate.slice(0, 10) : '',
+      category: task?.category ?? '',
+    });
+  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
