@@ -3,12 +3,14 @@ import { IsEmail, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
 import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
+import { SanitizeMaxLength } from '../../common/transforms/sanitize-max-length.transform';
 
 export class LoginDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Registered email address',
   })
+  @SanitizeMaxLength(254)
   @SanitizeAdvanced()
   @SanitizeHtml()
   @Transform(({ value }: { value: unknown }) =>
