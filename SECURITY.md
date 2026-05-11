@@ -73,10 +73,27 @@ Passwords are hashed with `bcrypt` at cost factor 10 before storage. Comparison 
 
 Both stages are applied to every string field in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `LoginDto`.
 
-### 8. SQL Injection Prevention
+### 8. Input Sanitization Layers
+
+Every string field in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `LoginDto` passes through a multi-stage sanitization pipeline applied in this order:
+
+| Stage | Mechanism | Purpose |
+|---|---|---|
+| Email normalization | `value.trim().toLowerCase()` | Treats `User@EXAMPLE.COM` and `user@example.com` as the same identity |
+| Max length enforcement | `SanitizeMaxLength(n)` | Hard-truncates before the value reaches validation — email: 254 (RFC 5321), title: 255, description: 1000, category: 50 |
+| HTML tag stripping | `SanitizeHtml` via `sanitize-html` | Removes all HTML tags — defence-in-depth against stored XSS |
+| Control character strip | `.replace(/[\u0000-\u001F\u007F]/g, '')` | Removes ASCII control characters (null bytes, tab, newline, DEL, etc.) |
+| Zero-width character strip | `.replace(/[\u200B-\u200D\uFEFF]/g, '')` | Removes invisible Unicode characters that can hide injected content |
+| Whitespace collapse | `.replace(/\s+/g, ' ')` | Collapses multiple consecutive spaces into one |
+| Unicode normalization | `.normalize('NFC')` | Prevents lookalike-character attacks via composed form |
+| SQL keyword detection | `SqlInjectionDetectorInterceptor` | Scans request bodies for suspicious patterns and logs a `WARN` — does not block (TypeORM parameterised queries already prevent actual SQL injection) |
+
+The SQL injection detector checks for: SQL keywords followed by whitespace (`DROP`, `DELETE`, `INSERT`, `UPDATE`, `UNION`, `SELECT`), SQL comment sequences (`--`), statement chaining (`;DROP`/`;DELETE`), and boolean injection (`OR 1=1`, `AND 1=1`). When a match is found it logs `event: sql_injection_attempt` with `userId`, `ip`, `path`, `method`, and the matched pattern name — never the full field value.
+
+### 9. SQL Injection Prevention
 All database access uses TypeORM repository methods (`find`, `findOne`, `save`, `update`, `delete`). TypeORM generates parameterized queries for all of these — user input is never concatenated into SQL strings. No raw query strings exist in the codebase.
 
-### 9. Rate Limiting
+### 10. Rate Limiting
 `@nestjs/throttler` (v6) applies rate limits per IP:
 
 | Route group | Limit | Window |
@@ -88,30 +105,30 @@ All database access uses TypeORM repository methods (`find`, `findOne`, `save`, 
 
 The tighter login limit significantly slows credential-stuffing and brute-force attacks.
 
-### 10. ID Validation
+### 11. ID Validation
 `ParsePositiveIntPipe` guards every `:id` route parameter. It rejects NaN, zero, negative values, floats, and strings with leading zeros (`"007"`) before the service layer is reached.
 
-### 11. Error Handling
+### 12. Error Handling
 `GlobalExceptionFilter` is registered globally and ensures:
 - 500 errors return `"An unexpected error occurred"` — no stack trace, no internal message
 - `HttpException` subclasses (400, 401, 404, etc.) return their developer-facing messages as normal
 - All unhandled exceptions are logged server-side with timestamp, method, and path
 - All responses share the shape `{ statusCode, message, timestamp }`
 
-### 12. Authentication Security
+### 13. Authentication Security
 - **JWT access tokens** expire in 15 minutes — a compromised token has a bounded abuse window
 - **Refresh tokens** are stored as a `bcrypt` hash in the `refresh_tokens` table — the raw token is never persisted; a leaked database dump cannot be used to forge tokens
 - **Refresh token rotation** — every call to `POST /auth/refresh` revokes the used DB record and issues a fresh pair; replaying a stolen refresh token is rejected because its record is already marked `isRevoked: true`
 - **Logout revocation** — `POST /auth/logout` marks all active refresh tokens for the user as `isRevoked: true`, invalidating all sessions across all devices immediately
 - **iOS Safari fallback** — Safari's Intelligent Tracking Prevention (ITP) blocks cross-domain `Set-Cookie` headers. The login response includes `access_token` in the body as a fallback; the frontend stores it in `sessionStorage` (not `localStorage`) and sends it as `Authorization: Bearer`. The NestJS JWT strategy accepts both paths transparently, so all other browsers continue using the secure `httpOnly` cookie path.
 
-### 13. Production Configuration
+### 14. Production Configuration
 - `synchronize: false` in TypeORM production config — schema changes never happen implicitly at runtime
 - `migrationsRun: true` — all pending migration files run automatically on boot
 - Both settings are gated on `NODE_ENV=production`; development retains `synchronize: true` for fast iteration
 - Migration files live in `src/migrations/` and compile to `dist/migrations/` for the production build
 
-### 14. Row Level Security (RLS)
+### 15. Row Level Security (RLS)
 
 RLS is enabled on all three tables (`task`, `users`, `refresh_tokens`) as a database-level backstop. The full policy definitions live in `backend/src/database/rls-policies.sql`.
 

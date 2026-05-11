@@ -10,12 +10,14 @@ import { ApiProperty } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '../task.entity';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
 import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
+import { SanitizeMaxLength } from '../../common/transforms/sanitize-max-length.transform';
 
 export class CreateTaskDto {
   @ApiProperty({
     example: 'Buy groceries',
     description: 'Short task title (max 255 chars)',
   })
+  @SanitizeMaxLength(255)
   @SanitizeAdvanced()
   @SanitizeHtml()
   @IsString()
@@ -28,6 +30,7 @@ export class CreateTaskDto {
     description: 'Optional task description (max 1000 chars)',
     required: false,
   })
+  @SanitizeMaxLength(1000)
   @SanitizeAdvanced()
   @SanitizeHtml()
   @IsString()
@@ -69,6 +72,7 @@ export class CreateTaskDto {
     description: 'Optional category tag (max 50 chars)',
     required: false,
   })
+  @SanitizeMaxLength(50)
   @SanitizeAdvanced()
   @SanitizeHtml()
   @IsString()

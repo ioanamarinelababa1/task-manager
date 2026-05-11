@@ -3,12 +3,14 @@ import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
 import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
+import { SanitizeMaxLength } from '../../common/transforms/sanitize-max-length.transform';
 
 export class RegisterDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Valid email address — normalised to lowercase',
   })
+  @SanitizeMaxLength(254)
   @SanitizeAdvanced()
   @SanitizeHtml()
   // Normalise email to lowercase so User@EXAMPLE.COM and user@example.com are the same identity

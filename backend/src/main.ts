@@ -8,6 +8,7 @@ import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { SqlInjectionDetectorInterceptor } from './common/interceptors/sql-injection-detector.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -40,7 +41,11 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   // ── Audit interceptor: logs POST/PUT/DELETE metadata (no body, no auth headers)
-  app.useGlobalInterceptors(new AuditInterceptor());
+  // ── SQL injection detector: warns on suspicious patterns (alert-only, no blocking)
+  app.useGlobalInterceptors(
+    new AuditInterceptor(),
+    new SqlInjectionDetectorInterceptor(),
+  );
 
   // ── Global input validation: strip unknown fields, auto-transform types
   app.useGlobalPipes(
