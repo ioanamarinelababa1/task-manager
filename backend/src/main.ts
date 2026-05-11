@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import * as express from 'express';
 import cookieParser from 'cookie-parser';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger as PinoLogger } from 'nestjs-pino';
@@ -10,6 +11,12 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
+
+  // ── Request size limits
+  // 10kb covers all valid API payloads (max task description 1000 chars ≈ 4kb)
+  // Prevents payload bomb / DoS attacks
+  app.use(express.json({ limit: '10kb' }));
+  app.use(express.urlencoded({ limit: '10kb', extended: true }));
 
   // ── Security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.)
   app.use(
