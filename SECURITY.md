@@ -75,21 +75,20 @@ Both stages are applied to every string field in `CreateTaskDto`, `UpdateTaskDto
 
 ### 8. Input Sanitization Layers
 
-Every string field in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `LoginDto` passes through a multi-stage sanitization pipeline applied in this order:
+All string fields in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `LoginDto` pass through an eight-layer sanitization pipeline in the following order:
 
-| Stage | Mechanism | Purpose |
+| Layer | Mechanism | Prevents |
 |---|---|---|
-| Email normalization | `value.trim().toLowerCase()` | Treats `User@EXAMPLE.COM` and `user@example.com` as the same identity |
-| Max length enforcement | `SanitizeMaxLength(n)` | Hard-truncates before the value reaches validation — email: 254 (RFC 5321), title: 255, description: 1000, category: 50 |
-| HTML tag stripping | `SanitizeHtml` via `sanitize-html` | Removes all HTML tags — defence-in-depth against stored XSS |
-| Control character strip | `.replace(/[\u0000-\u001F\u007F]/g, '')` | Removes ASCII control characters (null bytes, tab, newline, DEL, etc.) |
-| Zero-width character strip | `.replace(/[\u200B-\u200D\uFEFF]/g, '')` | Removes invisible Unicode characters that can hide injected content |
-| Whitespace collapse | `.replace(/\s+/g, ' ')` | Collapses multiple consecutive spaces into one |
-| Unicode normalization | `.normalize('NFC')` | Prevents lookalike-character attacks via composed form |
-| SQL keyword detection | `SqlInjectionDetectorInterceptor` | Scans request bodies for suspicious patterns and logs a `WARN` — does not block (TypeORM parameterised queries already prevent actual SQL injection) |
+| 1. Max length enforcement | `SanitizeMaxLength(n)` — title: 255, description: 1000, category: 50, email: 254 | Oversized payload attacks and database column overflow before validation runs |
+| 2. Trim whitespace | `SanitizeAdvanced` — `.trim()` | Leading/trailing whitespace that could bypass equality checks |
+| 3. Null byte removal | `SanitizeAdvanced` — `.replace(/\0/g, '')` | Binary injection via embedded null bytes |
+| 4. Control character strip | `SanitizeAdvanced` — `.replace(/[\u0000-\u001F\u007F]/g, '')` | Binary injection via ASCII control characters (tab, LF, CR, DEL, etc.) |
+| 5. Zero-width character strip | `SanitizeAdvanced` — `.replace(/[\u200B-\u200D\uFEFF]/g, '')` | Invisible-character spoofing where injected content hides behind zero-width Unicode |
+| 6. Whitespace collapse | `SanitizeAdvanced` — `.replace(/\s+/g, ' ')` | Whitespace-based filter evasion where extra spaces obscure detected patterns |
+| 7. Unicode normalization | `SanitizeAdvanced` — `.normalize('NFC')` | Lookalike-character attacks where visually identical characters have different code points |
+| 8. HTML tag stripping | `SanitizeHtml` via `sanitize-html` (no tags, no attributes allowed) | Stored XSS — removes all HTML so no script content reaches the database |
 
-The SQL injection detector checks for: SQL keywords followed by whitespace (`DROP`, `DELETE`, `INSERT`, `UPDATE`, `UNION`, `SELECT`), SQL comment sequences (`--`), statement chaining (`;DROP`/`;DELETE`), and boolean injection (`OR 1=1`, `AND 1=1`). When a match is found it logs `event: sql_injection_attempt` with `userId`, `ip`, `path`, `method`, and the matched pattern name — never the full field value.
-
+**SQL injection detection** (`SqlInjectionDetectorInterceptor`) runs as a separate monitoring layer on every request body. It logs a structured `WARN` with `event: sql_injection_attempt`, `userId`, `ip`, `path`, `method`, and the matched pattern name when it detects: SQL keywords followed by whitespace (`DROP`, `DELETE`, `INSERT`, `UPDATE`, `UNION`, `SELECT`), comment sequences (`--`), statement chaining (`;DROP`/`;DELETE`), or boolean injection (`OR 1=1`, `AND 1=1`). It does **not** block requests — TypeORM parameterised queries already prevent actual injection.
 ### 9. SQL Injection Prevention
 All database access uses TypeORM repository methods (`find`, `findOne`, `save`, `update`, `delete`). TypeORM generates parameterized queries for all of these — user input is never concatenated into SQL strings. No raw query strings exist in the codebase.
 
