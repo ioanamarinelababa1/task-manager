@@ -7,6 +7,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -37,6 +38,9 @@ async function bootstrap() {
 
   // ── Global exception filter: consistent error shape, no stack trace leakage
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // ── Audit interceptor: logs POST/PUT/DELETE metadata (no body, no auth headers)
+  app.useGlobalInterceptors(new AuditInterceptor());
 
   // ── Global input validation: strip unknown fields, auto-transform types
   app.useGlobalPipes(
