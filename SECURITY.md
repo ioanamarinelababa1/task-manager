@@ -106,6 +106,53 @@ The tighter login limit significantly slows credential-stuffing and brute-force 
 - Both settings are gated on `NODE_ENV=production`; development retains `synchronize: true` for fast iteration
 - Migration files live in `src/migrations/` and compile to `dist/migrations/` for the production build
 
+### 14. Row Level Security (RLS)
+
+RLS is enabled on all three tables (`task`, `users`, `refresh_tokens`) as a database-level backstop. The full policy definitions live in `backend/src/database/rls-policies.sql`.
+
+**Two-layer ownership model**
+
+| Layer | Mechanism | Where enforced |
+|---|---|---|
+| Application (primary) | `JwtAuthGuard` validates the JWT on every request; `TasksService` checks `task.userId === req.user.id` before every read/write | NestJS guards and service methods |
+| Database (defense in depth) | RLS policies block any non-service-role connection from reading or modifying rows it does not own | PostgreSQL / Supabase |
+
+**Why service_role is used for TypeORM**
+
+TypeORM connects to Supabase using the `service_role` key (via `DATABASE_URL`). Supabase grants `BYPASSRLS` to the `service_role` role, so RLS has no effect on TypeORM queries. This is intentional: the application layer is the correct place to enforce ownership with NestJS's request-scoped context. The RLS policies protect against:
+
+- Direct `psql` or GUI client access to the database
+- Supabase dashboard query runner (uses the `authenticated` / `anon` role)
+- Future integrations that connect without the service_role key
+- PostgREST auto-generated REST endpoints (if ever exposed)
+
+**Session-variable approach for custom JWT**
+
+Because this project uses a custom NestJS JWT with an integer `sub` (not a Supabase Auth UUID), the standard `auth.uid()` function is not usable in policies. Instead, the policies check a session-local variable:
+
+```sql
+-- Set before each query in any non-service-role connection:
+SET LOCAL app.current_user_id = '42';
+
+-- Policy uses:
+nullif(current_setting('app.current_user_id', true), '')::integer = "userId"
+```
+
+If the variable is not set, `current_setting` returns an empty string, `nullif` converts it to `NULL`, and the USING check evaluates to `NULL` (false) — **fail-closed by default**.
+
+**Configuring Supabase to verify NestJS JWTs**
+
+To allow Supabase's own JWT verification helpers to recognise tokens issued by NestJS:
+
+1. Dashboard → Project Settings → API → JWT Secret
+2. Set the value to the same string as `JWT_SECRET` in `backend/.env`
+
+This is optional for the current setup (TypeORM uses service_role), but required if you ever expose the PostgREST API directly and want Supabase to validate Bearer tokens.
+
+**Activating session-variable RLS in TypeORM (optional hardening)**
+
+To route TypeORM queries through RLS instead of bypassing it, every query would need to be preceded by `SET LOCAL app.current_user_id = '<id>'`. This requires request-scoped DataSource injection and is not implemented. See the comment at the bottom of `rls-policies.sql` for the approach.
+
 ---
 
 ## Known Limitations
@@ -136,6 +183,10 @@ The following would be added before deploying to a production environment:
 - [x] Refresh token rotation — every `/auth/refresh` call revokes the old DB record and issues a fresh pair; replay of a stolen token is rejected
 - [x] Refresh token revocation on logout — `POST /auth/logout` marks all active tokens for the user as `isRevoked: true` in the `refresh_tokens` table
 - [ ] Expired token cleanup (TODO) — add a `@nestjs/schedule` cron job (`@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)`) that runs `DELETE FROM refresh_tokens WHERE expires_at < NOW()` to prevent unbounded table growth
+
+**Database Security**
+- [x] Row Level Security enabled on `task`, `users`, `refresh_tokens` — policies documented in `backend/src/database/rls-policies.sql`; service_role bypasses RLS (TypeORM); session-variable policies protect direct connections
+- [ ] Activate per-request `SET LOCAL app.current_user_id` in TypeORM to route queries through RLS (requires request-scoped DataSource injection)
 
 **Additional Hardening**
 - [ ] Content Security Policy (CSP) header via Helmet configuration — restricts which scripts/styles/fonts can load
