@@ -30,7 +30,7 @@ Everything in this list is production-ready and tested — you don't need to bui
 | Feature | Details |
 |---------|---------|
 | JWT Auth | Register, login, logout, refresh token rotation with DB revocation |
-| Security | Helmet, CORS, rate limiting, httpOnly cookies, XSS sanitization, clickjacking protection |
+| Security | Helmet, CORS, rate limiting, httpOnly cookies, XSS sanitization, clickjacking protection, max length enforcement, control char stripping, SQL pattern detection |
 | Database | PostgreSQL with TypeORM, migrations in production, synchronize in development |
 | Testing | 38 tests — ownership enforcement, security boundaries, auth flows |
 | CI/CD | GitHub Actions — TypeScript, ESLint, Jest, build checks on every push |

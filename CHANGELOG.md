@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] — 2026-04-24
 
 ### Added
+- `SanitizeMaxLength` transform — hard truncation per field before validation: title 255, description 1000, category 50, email 254 (RFC 5321)
+- Enhanced `SanitizeAdvanced` transform — now also strips ASCII control characters and zero-width Unicode characters, and collapses whitespace runs to a single space
+- `SqlInjectionDetectorInterceptor` — scans every request body for SQL injection patterns and logs a structured `WARN` (monitoring layer only, does not block; TypeORM parameterised queries prevent actual injection)
+- 12 new unit tests for sanitization transforms (56 total)
 - Task fields: `priority` (LOW / MEDIUM / HIGH), `dueDate`, `category`
 - Refresh token rotation — each token is single-use; old token revoked on every refresh
 - TypeORM migrations replacing `synchronize: true` in production (`migration:generate`, `migration:run`, `migration:revert`)
