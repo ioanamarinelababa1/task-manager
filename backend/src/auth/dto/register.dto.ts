@@ -2,12 +2,14 @@ import { Transform } from 'class-transformer';
 import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
+import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
 
 export class RegisterDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Valid email address — normalised to lowercase',
   })
+  @SanitizeAdvanced()
   @SanitizeHtml()
   // Normalise email to lowercase so User@EXAMPLE.COM and user@example.com are the same identity
   @Transform(({ value }: { value: unknown }) =>
@@ -22,6 +24,7 @@ export class RegisterDto {
       'Password — min 8 chars, must include uppercase, lowercase, and a digit',
   })
   // Password policy: 8+ chars, upper, lower, digit — enforced here and mirrored on the frontend
+  @SanitizeAdvanced()
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @Matches(/[A-Z]/, {

@@ -66,7 +66,12 @@ Passwords are hashed with `bcrypt` at cost factor 10 before storage. Comparison 
 - `forbidNonWhitelisted: true` — a request with unknown fields is rejected with 400
 - `transform: true` — route params and body are auto-cast to declared DTO types
 
-`@Transform` decorators on all string DTO fields trim whitespace and strip HTML tags before validation runs, providing a defence-in-depth layer against stored XSS.
+`@Transform` decorators on all string DTO fields run a two-stage sanitization pipeline before validation:
+
+1. **Advanced sanitization** (`SanitizeAdvanced`): trim whitespace, remove null bytes (binary injection), normalize Unicode (NFC — prevents lookalike-character attacks)
+2. **HTML sanitization** (`SanitizeHtml`): strip all HTML tags — defence-in-depth against stored XSS
+
+Both stages are applied to every string field in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `LoginDto`.
 
 ### 8. SQL Injection Prevention
 All database access uses TypeORM repository methods (`find`, `findOne`, `save`, `update`, `delete`). TypeORM generates parameterized queries for all of these — user input is never concatenated into SQL strings. No raw query strings exist in the codebase.
