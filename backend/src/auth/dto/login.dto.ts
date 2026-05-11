@@ -2,12 +2,14 @@ import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
+import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
 
 export class LoginDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Registered email address',
   })
+  @SanitizeAdvanced()
   @SanitizeHtml()
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim().toLowerCase() : value,
@@ -16,6 +18,7 @@ export class LoginDto {
   email: string;
 
   @ApiProperty({ example: 'Secret1234', description: 'Account password' })
+  @SanitizeAdvanced()
   @IsNotEmpty({ message: 'Password must not be empty' })
   password: string;
 }

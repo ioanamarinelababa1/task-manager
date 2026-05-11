@@ -9,6 +9,7 @@ import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '../task.entity';
 import { SanitizeHtml } from '../../common/transforms/sanitize.transform';
+import { SanitizeAdvanced } from '../../common/transforms/sanitize-advanced.transform';
 
 export class UpdateTaskDto {
   @ApiProperty({
@@ -16,6 +17,7 @@ export class UpdateTaskDto {
     description: 'Updated task title (max 255 chars)',
     required: false,
   })
+  @SanitizeAdvanced()
   @SanitizeHtml()
   @IsString()
   @IsOptional()
@@ -27,6 +29,7 @@ export class UpdateTaskDto {
     description: 'Updated task description (max 1000 chars)',
     required: false,
   })
+  @SanitizeAdvanced()
   @SanitizeHtml()
   @IsString()
   @IsOptional()
@@ -71,6 +74,7 @@ export class UpdateTaskDto {
     description: 'Updated category tag (max 50 chars)',
     required: false,
   })
+  @SanitizeAdvanced()
   @Transform(({ value }: { value: unknown }) =>
     value === '' ? undefined : (value as string | undefined),
   )
