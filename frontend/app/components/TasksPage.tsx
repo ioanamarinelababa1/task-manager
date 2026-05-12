@@ -275,7 +275,7 @@ export default function TasksPage() {
 
         {/* Filter buttons — horizontally scrollable on mobile, no wrap */}
         {!loading && !error && tasks.length > 0 && (
-          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+          <div className="flex flex-nowrap items-center gap-2 mb-6 overflow-x-auto scroll-smooth pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
             {filterOptions.map(({ label, value, count, dot }) => {
               const active = filterStatus === value;
               return (
