@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Task, TaskFormData, TaskStatus } from '../lib/types';
-import { createTask, deleteTask, fetchTasks, logoutUser, updateTask } from '../lib/api';
+import { Task, TaskFormData, TaskStatus, PaginationMeta } from '../lib/types';
+import { createTask, deleteTask, getTasks, logoutUser, updateTask } from '../lib/api';
 import { clearUser, getUser } from '../lib/auth';
 import TaskCard from './TaskCard';
 import TaskModal from './TaskModal';
@@ -94,6 +94,8 @@ export default function TasksPage() {
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [toastState, setToastState] = useState<ToastState | null>(null);
   const [filterStatus, setFilterStatus] = useState<TaskStatus | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
   const onHideRef = useRef<() => void>(() => setToastState(null));
@@ -109,30 +111,36 @@ export default function TasksPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Stagger animation: trigger after tasks load or filter changes
+  // Stagger animation: trigger after tasks load, filter or page changes
   useEffect(() => {
     if (!loading) {
       setCardsVisible(false);
       const t = setTimeout(() => setCardsVisible(true), 50);
       return () => clearTimeout(t);
     }
-  }, [loading, filterStatus]);
+  }, [loading, filterStatus, currentPage]);
 
   const showToast = useCallback((message: string) => {
     setToastState({ message, id: Date.now() });
   }, []);
 
   const loadTasks = useCallback(async () => {
+    setLoading(true);
     setError('');
     try {
-      const data = await fetchTasks();
-      setTasks(data);
+      const data = await getTasks({
+        page: currentPage,
+        limit: 10,
+        ...(filterStatus ? { status: filterStatus } : {}),
+      });
+      setTasks(data.data);
+      setPaginationMeta(data.meta);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, filterStatus]);
 
   useEffect(() => {
     loadTasks();
@@ -170,14 +178,18 @@ export default function TasksPage() {
     router.replace('/login');
   }
 
+  function handleFilterChange(value: TaskStatus | null) {
+    setFilterStatus(value);
+    setCurrentPage(1);
+  }
+
   const todoCount = tasks.filter((t) => t.status === 'TODO').length;
   const inProgressCount = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
   const doneCount = tasks.filter((t) => t.status === 'DONE').length;
-
-  const filteredTasks = filterStatus ? tasks.filter((t) => t.status === filterStatus) : tasks;
+  const totalCount = paginationMeta?.total ?? tasks.length;
 
   const filterOptions: { label: string; value: TaskStatus | null; count: number; dot?: string }[] = [
-    { label: 'All', value: null, count: tasks.length },
+    { label: 'All', value: null, count: totalCount },
     { label: 'To Do', value: 'TODO', count: todoCount, dot: 'bg-gray-400' },
     { label: 'In Progress', value: 'IN_PROGRESS', count: inProgressCount, dot: 'bg-blue-500' },
     { label: 'Done', value: 'DONE', count: doneCount, dot: 'bg-green-500' },
@@ -243,10 +255,10 @@ export default function TasksPage() {
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats bar */}
-        {!loading && !error && tasks.length > 0 && (
+        {!loading && !error && totalCount > 0 && (
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 shadow-sm ring-1 ring-gray-100">
-              <span className="text-sm font-semibold text-gray-900">{tasks.length}</span>
+              <span className="text-sm font-semibold text-gray-900">{totalCount}</span>
               <span className="text-sm text-gray-400">Total</span>
             </div>
             <div className="flex items-center gap-2">
@@ -274,14 +286,14 @@ export default function TasksPage() {
         )}
 
         {/* Filter buttons — horizontally scrollable on mobile, no wrap */}
-        {!loading && !error && tasks.length > 0 && (
+        {!loading && !error && totalCount > 0 && (
           <div className="flex flex-nowrap items-center gap-2 mb-6 overflow-x-auto scroll-smooth pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
             {filterOptions.map(({ label, value, count, dot }) => {
               const active = filterStatus === value;
               return (
                 <button
                   key={label}
-                  onClick={() => setFilterStatus(value)}
+                  onClick={() => handleFilterChange(value)}
                   className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 whitespace-nowrap shrink-0 min-h-[44px] ${
                     active
                       ? 'bg-violet-600 text-white shadow-sm'
@@ -338,7 +350,7 @@ export default function TasksPage() {
         )}
 
         {/* Empty state — with illustration and pulsing CTA */}
-        {!loading && !error && tasks.length === 0 && (
+        {!loading && !error && tasks.length === 0 && !filterStatus && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="text-6xl mb-6 select-none" aria-hidden="true">📋</div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">No tasks yet</h2>
@@ -358,11 +370,11 @@ export default function TasksPage() {
         )}
 
         {/* Empty filter state */}
-        {!loading && !error && tasks.length > 0 && filteredTasks.length === 0 && (
+        {!loading && !error && tasks.length === 0 && filterStatus && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-gray-400 mb-3">No tasks match this filter.</p>
             <button
-              onClick={() => setFilterStatus(null)}
+              onClick={() => handleFilterChange(null)}
               className="text-sm font-medium text-violet-600 hover:text-violet-800 transition-colors"
             >
               Show all tasks
@@ -371,9 +383,9 @@ export default function TasksPage() {
         )}
 
         {/* Task grid — staggered fade-in */}
-        {!loading && !error && filteredTasks.length > 0 && (
+        {!loading && !error && tasks.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredTasks.map((task, i) => (
+            {tasks.map((task, i) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -383,6 +395,43 @@ export default function TasksPage() {
                 onDelete={(t) => setModal({ type: 'delete', task: t })}
               />
             ))}
+          </div>
+        )}
+
+        {/* Pagination controls */}
+        {!loading && !error && paginationMeta && paginationMeta.totalPages > 1 && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={!paginationMeta.hasPreviousPage}
+                className="flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+
+              <span className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-full border border-gray-200 min-h-[44px] flex items-center">
+                Page {paginationMeta.page} of {paginationMeta.totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={!paginationMeta.hasNextPage}
+                className="flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                Next
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              Showing {tasks.length} of {paginationMeta.total} task{paginationMeta.total !== 1 ? 's' : ''}
+            </p>
           </div>
         )}
       </main>

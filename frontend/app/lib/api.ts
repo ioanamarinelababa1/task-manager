@@ -11,7 +11,7 @@
  * the original request once. If the refresh also fails the user is redirected
  * to /login.
  */
-import { Task, TaskFormData, AuthResponse } from './types';
+import { Task, TaskFormData, AuthResponse, PaginatedResponse } from './types';
 import { clearUser, getToken, setToken } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -110,8 +110,25 @@ export async function getMe(): Promise<{ id: number; email: string }> {
 
 // ── Task endpoints ────────────────────────────────────────────────────────────
 
-export async function fetchTasks(): Promise<Task[]> {
-  const res = await apiFetch(`${API_BASE}/tasks`);
+export async function getTasks(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  priority?: string;
+  sortBy?: string;
+  order?: string;
+  search?: string;
+}): Promise<PaginatedResponse<Task>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set('page', String(params.page));
+  if (params?.limit) searchParams.set('limit', String(params.limit));
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.priority) searchParams.set('priority', params.priority);
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+  if (params?.order) searchParams.set('order', params.order);
+  if (params?.search) searchParams.set('search', params.search);
+  const query = searchParams.toString();
+  const res = await apiFetch(`${API_BASE}/tasks${query ? '?' + query : ''}`);
   if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
   return res.json();
 }

@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -18,12 +19,14 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { TasksService } from './tasks.service';
-import { Task } from './task.entity';
+import { TasksService, PaginationMeta } from './tasks.service';
+import { Task, TaskStatus, TaskPriority } from './task.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { QueryTasksDto, SortField, SortOrder } from './dto/query-tasks.dto';
 import { ParsePositiveIntPipe } from '../common/pipes/parse-positive-int.pipe';
 
 // All /tasks routes: max 60 requests per IP per minute (authenticated users only)
@@ -37,18 +40,30 @@ export class TasksController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List all tasks for the authenticated user' })
+  @ApiOperation({
+    summary:
+      'List tasks for the authenticated user with pagination, sorting and filtering',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'status', required: false, enum: TaskStatus })
+  @ApiQuery({ name: 'priority', required: false, enum: TaskPriority })
+  @ApiQuery({ name: 'sortBy', required: false, enum: SortField })
+  @ApiQuery({ name: 'order', required: false, enum: SortOrder })
+  @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({
     status: 200,
-    description: 'Array of user tasks',
-    type: [Task],
+    description: 'Paginated list of user tasks',
   })
   @ApiResponse({
     status: 401,
     description: 'Unauthorised — missing or invalid JWT',
   })
-  findAll(@Request() req: { user: { id: number } }): Promise<Task[]> {
-    return this.tasksService.findAll(req.user.id);
+  findAll(
+    @Request() req: { user: { id: number } },
+    @Query() query: QueryTasksDto,
+  ): Promise<{ data: Task[]; meta: PaginationMeta }> {
+    return this.tasksService.findAll(req.user.id, query);
   }
 
   @Get(':id')

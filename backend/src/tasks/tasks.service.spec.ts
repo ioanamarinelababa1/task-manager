@@ -19,6 +19,15 @@ const mockTask: Task = {
   updatedAt: new Date(),
 };
 
+const mockQueryBuilder = {
+  where: jest.fn().mockReturnThis(),
+  andWhere: jest.fn().mockReturnThis(),
+  orderBy: jest.fn().mockReturnThis(),
+  skip: jest.fn().mockReturnThis(),
+  take: jest.fn().mockReturnThis(),
+  getManyAndCount: jest.fn(),
+};
+
 const mockRepository = {
   find: jest.fn(),
   findOne: jest.fn(),
@@ -26,6 +35,7 @@ const mockRepository = {
   save: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
+  createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
 };
 
 describe('TasksService', () => {
@@ -51,13 +61,94 @@ describe('TasksService', () => {
   });
 
   describe('findAll', () => {
-    it('returns only tasks belonging to the user', async () => {
-      mockRepository.find.mockResolvedValue([mockTask]);
-      const result = await service.findAll(1);
-      expect(result).toEqual([mockTask]);
-      expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { userId: 1 },
+    it('returns paginated tasks with correct meta', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
+      const result = await service.findAll(1, {});
+      expect(result.data).toEqual([mockTask]);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
       });
+    });
+
+    it('returns only tasks belonging to the user', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
+      await service.findAll(1, {});
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'task.userId = :userId',
+        { userId: 1 },
+      );
+    });
+
+    it('applies status filter', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
+      await service.findAll(1, { status: TaskStatus.TODO });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'task.status = :status',
+        { status: TaskStatus.TODO },
+      );
+    });
+
+    it('applies search filter with case-insensitive LIKE', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
+      await service.findAll(1, { search: 'test' });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'LOWER(task.title) LIKE LOWER(:search)',
+        { search: '%test%' },
+      );
+    });
+
+    it('returns empty data and zero meta when user has no tasks', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      const result = await service.findAll(42, {});
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(result.meta.totalPages).toBe(0);
+      expect(result.meta.hasNextPage).toBe(false);
+      expect(result.meta.hasPreviousPage).toBe(false);
+    });
+  });
+
+  describe('Pagination', () => {
+    it('returns correct meta for page 2 of 3', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 25]);
+      const result = await service.findAll(1, { page: 2, limit: 10 });
+      expect(result.meta).toEqual({
+        total: 25,
+        page: 2,
+        limit: 10,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      });
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(10);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+    });
+
+    it('hasNextPage is false on the last page', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 10]);
+      const result = await service.findAll(1, { page: 1, limit: 10 });
+      expect(result.meta.hasNextPage).toBe(false);
+      expect(result.meta.hasPreviousPage).toBe(false);
+    });
+
+    it('hasPreviousPage is false on page 1', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 20]);
+      const result = await service.findAll(1, { page: 1, limit: 10 });
+      expect(result.meta.hasPreviousPage).toBe(false);
+      expect(result.meta.hasNextPage).toBe(true);
+    });
+
+    it('respects custom limit', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 50]);
+      const result = await service.findAll(1, { page: 1, limit: 25 });
+      expect(result.meta.limit).toBe(25);
+      expect(result.meta.totalPages).toBe(2);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(25);
     });
   });
 
@@ -133,12 +224,13 @@ describe('TasksService', () => {
     });
 
     it('findAll should only return tasks belonging to the requesting user', async () => {
-      mockRepository.find.mockResolvedValue([mockTask]);
-      const result = await service.findAll(1);
-      expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { userId: 1 },
-      });
-      expect(result).toEqual([mockTask]);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
+      const result = await service.findAll(1, {});
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'task.userId = :userId',
+        { userId: 1 },
+      );
+      expect(result.data).toEqual([mockTask]);
     });
 
     it('create should attach the requesting userId to the new task', async () => {
@@ -156,10 +248,10 @@ describe('TasksService', () => {
       await expect(service.findOne(99, 1)).rejects.toThrow(NotFoundException);
     });
 
-    it('findAll should return empty array when user has no tasks', async () => {
-      mockRepository.find.mockResolvedValue([]);
-      const result = await service.findAll(42);
-      expect(result).toEqual([]);
+    it('findAll should return empty data when user has no tasks', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      const result = await service.findAll(42, {});
+      expect(result.data).toEqual([]);
     });
 
     it('create should set default status TODO when no status provided', async () => {
