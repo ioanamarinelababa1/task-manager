@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Task, TaskFormData, TaskStatus } from '../lib/types';
 import { createTask, deleteTask, fetchTasks, logoutUser, updateTask } from '../lib/api';
@@ -16,17 +16,71 @@ type ModalState =
   | { type: 'edit'; task: Task }
   | { type: 'delete'; task: Task };
 
+interface ToastState {
+  message: string;
+  id: number;
+}
+
+// Self-contained toast component — mounted per-message via key so animation always replays
+function Toast({ message, onHide }: { message: string; onHide: () => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setVisible(true));
+    });
+    const dismiss = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onHide, 300);
+    }, 3000);
+    return () => clearTimeout(dismiss);
+  }, [onHide]);
+
+  return (
+    <div
+      className={`fixed z-50 flex items-center gap-3 overflow-hidden rounded-2xl bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-xl
+        transition-all duration-300
+        bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-auto sm:top-6 sm:w-auto sm:max-w-sm
+        ${visible
+          ? 'translate-y-0 opacity-100'
+          : 'translate-y-4 opacity-0 sm:translate-y-0 sm:-translate-y-4'
+        }
+      `}
+    >
+      <svg className="h-4 w-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+      <span className="flex-1">{message}</span>
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/10">
+        {visible && (
+          <div
+            className="h-full bg-green-400/60 rounded-full"
+            style={{ animation: 'shrink 3s linear forwards' }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 animate-pulse">
-      <div className="flex items-start justify-between mb-3">
-        <div className="h-5 w-20 rounded-full bg-gray-100" />
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-5 w-16 rounded-full bg-gray-100" />
+        <div className="h-5 w-14 rounded-full bg-gray-100" />
       </div>
-      <div className="h-4 w-3/4 rounded bg-gray-100 mb-2" />
-      <div className="h-3 w-full rounded bg-gray-100 mb-1" />
+      <div className="h-5 w-3/4 rounded-lg bg-gray-100 mb-2" />
+      <div className="h-3 w-full rounded bg-gray-100 mb-1.5" />
       <div className="h-3 w-2/3 rounded bg-gray-100 mb-4" />
-      <div className="h-px w-full bg-gray-50 mb-3" />
-      <div className="h-3 w-1/3 rounded bg-gray-100" />
+      <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+        <div className="h-3 w-1/3 rounded bg-gray-100" />
+        <div className="flex gap-1">
+          <div className="h-9 w-9 rounded-xl bg-gray-100" />
+          <div className="h-9 w-9 rounded-xl bg-gray-100" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -38,12 +92,34 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
-  const [toast, setToast] = useState('');
+  const [toastState, setToastState] = useState<ToastState | null>(null);
   const [filterStatus, setFilterStatus] = useState<TaskStatus | null>(null);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [cardsVisible, setCardsVisible] = useState(false);
+  const onHideRef = useRef<() => void>(() => setToastState(null));
+
+  useEffect(() => {
+    onHideRef.current = () => setToastState(null);
+  });
+
+  // Sticky header shadow on scroll
+  useEffect(() => {
+    const handleScroll = () => setHeaderScrolled(window.scrollY > 4);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Stagger animation: trigger after tasks load or filter changes
+  useEffect(() => {
+    if (!loading) {
+      setCardsVisible(false);
+      const t = setTimeout(() => setCardsVisible(true), 50);
+      return () => clearTimeout(t);
+    }
+  }, [loading, filterStatus]);
 
   const showToast = useCallback((message: string) => {
-    setToast(message);
-    setTimeout(() => setToast(''), 3000);
+    setToastState({ message, id: Date.now() });
   }, []);
 
   const loadTasks = useCallback(async () => {
@@ -89,7 +165,6 @@ export default function TasksPage() {
   }
 
   async function handleLogout() {
-    // Tell the backend to clear the httpOnly cookies server-side
     await logoutUser().catch(() => {});
     clearUser();
     router.replace('/login');
@@ -110,22 +185,22 @@ export default function TasksPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      {/* Header — shadow appears on scroll */}
+      <header
+        className={`bg-white border-b border-gray-100 sticky top-0 z-40 transition-shadow duration-200 ${
+          headerScrolled ? 'shadow-md' : ''
+        }`}
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 shrink-0">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Notebook spine */}
                   <rect x="4" y="3" width="3.5" height="18" rx="1.5" fill="#c4b5fd"/>
-                  {/* Notebook cover */}
                   <rect x="6" y="3" width="14" height="18" rx="1.5" fill="white" opacity="0.95"/>
-                  {/* Spiral rings */}
                   <circle cx="6" cy="7.5"  r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
                   <circle cx="6" cy="12"   r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
                   <circle cx="6" cy="16.5" r="1.2" fill="none" stroke="#7c3aed" strokeWidth="1.2"/>
-                  {/* Text lines */}
                   <rect x="9.5" y="7"  width="7"   height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
                   <rect x="9.5" y="10" width="8.5" height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
                   <rect x="9.5" y="13" width="6.5" height="1.2" rx="0.6" fill="#7c3aed" opacity="0.5"/>
@@ -140,19 +215,21 @@ export default function TasksPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Rounded-full pill button */}
               <button
                 onClick={() => setModal({ type: 'create' })}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm"
+                className="flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 active:bg-violet-800 transition-colors shadow-sm min-h-[44px]"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>New Task</span>
+                <span className="hidden sm:inline">New Task</span>
+                <span className="sm:hidden">New</span>
               </button>
               <button
                 onClick={handleLogout}
                 title="Sign out"
-                className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors min-h-[44px]"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -186,7 +263,7 @@ export default function TasksPage() {
             </div>
             <button
               onClick={loadTasks}
-              className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -196,28 +273,30 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Filter buttons */}
+        {/* Filter buttons — horizontally scrollable on mobile, no wrap */}
         {!loading && !error && tasks.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
             {filterOptions.map(({ label, value, count, dot }) => {
               const active = filterStatus === value;
               return (
                 <button
                   key={label}
                   onClick={() => setFilterStatus(value)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 whitespace-nowrap shrink-0 min-h-[44px] ${
                     active
                       ? 'bg-violet-600 text-white shadow-sm'
-                      : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   {dot && (
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-violet-200' : dot}`}
-                    />
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${active ? 'bg-violet-300' : dot}`} />
                   )}
                   {label}
-                  <span className={`text-xs ${active ? 'text-violet-200' : 'text-gray-400'}`}>
+                  <span
+                    className={`text-xs rounded-full px-1.5 py-0.5 font-semibold leading-none ${
+                      active ? 'bg-violet-500 text-white' : 'bg-gray-200 text-gray-500'
+                    }`}
+                  >
                     {count}
                   </span>
                 </button>
@@ -258,21 +337,17 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state — with illustration and pulsing CTA */}
         {!loading && !error && tasks.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 mb-4">
-              <svg className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">No tasks yet</h2>
-            <p className="text-sm text-gray-400 mb-6 max-w-xs">
+            <div className="text-6xl mb-6 select-none" aria-hidden="true">📋</div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">No tasks yet</h2>
+            <p className="text-sm text-gray-400 mb-8 max-w-xs leading-relaxed">
               Get started by creating your first task. Stay organised and productive.
             </p>
             <button
               onClick={() => setModal({ type: 'create' })}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm"
+              className="flex items-center gap-2 rounded-full bg-violet-600 px-6 py-3 text-sm font-medium text-white hover:bg-violet-700 active:bg-violet-800 transition-colors shadow-sm animate-pulse hover:animate-none min-h-[48px]"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -295,13 +370,15 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Task grid */}
+        {/* Task grid — staggered fade-in */}
         {!loading && !error && filteredTasks.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredTasks.map((task) => (
+            {filteredTasks.map((task, i) => (
               <TaskCard
                 key={task.id}
                 task={task}
+                index={i}
+                visible={cardsVisible}
                 onEdit={(t) => setModal({ type: 'edit', task: t })}
                 onDelete={(t) => setModal({ type: 'delete', task: t })}
               />
@@ -332,14 +409,13 @@ export default function TasksPage() {
         />
       )}
 
-      {/* Toast notification */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
-          <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
-          {toast}
-        </div>
+      {/* Toast — self-contained animated component, remounted per message */}
+      {toastState && (
+        <Toast
+          key={toastState.id}
+          message={toastState.message}
+          onHide={onHideRef.current}
+        />
       )}
     </div>
   );

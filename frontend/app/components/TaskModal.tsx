@@ -32,13 +32,12 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
   const isEdit = !!task;
 
-  // Reset error and re-sync form fields whenever the task being edited changes.
-  // This prevents a stale error (e.g. from a previous failed submission) from
-  // appearing when the modal opens for a different task without unmounting.
   useEffect(() => {
     setError('');
     setForm({
@@ -51,9 +50,24 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
     });
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Double rAF ensures the browser has painted the initial state before animating in
   useEffect(() => {
-    titleRef.current?.focus();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+        setHasOpened(true);
+      });
+    });
   }, []);
+
+  useEffect(() => {
+    if (isAnimating) titleRef.current?.focus();
+  }, [isAnimating]);
+
+  function handleClose() {
+    setIsAnimating(false);
+    setTimeout(onClose, 200);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,14 +78,13 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
     setError('');
     setSubmitting(true);
     try {
-      // Strip empty optional strings so the backend treats them as absent
       const payload: TaskFormData = {
         ...form,
         dueDate: form.dueDate?.trim() || undefined,
         category: form.category?.trim() || undefined,
       };
       await onSubmit(payload);
-      onClose();
+      handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -79,28 +92,50 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
     }
   }
 
+  const transitionCls = hasOpened
+    ? isAnimating
+      ? 'transition-all duration-300 ease-out'
+      : 'transition-all duration-200 ease-in'
+    : '';
+
   const inputCls =
-    'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
+    'w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 min-h-[48px] bg-white';
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      {/* Backdrop — fades in */}
+      <div
+        className={`absolute inset-0 bg-black/50 backdrop-blur-sm ${transitionCls} ${
+          isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={handleClose}
+      />
 
-      {/* Panel */}
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+      {/* Panel — slides up from bottom on mobile, scales in on desktop */}
+      <div
+        className={`relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto ${transitionCls} ${
+          isAnimating
+            ? 'translate-y-0 opacity-100 sm:scale-100'
+            : 'translate-y-full opacity-0 sm:translate-y-0 sm:scale-95'
+        }`}
+      >
+        {/* Handle bar — mobile only */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden" aria-hidden="true">
+          <div className="h-1 w-10 rounded-full bg-gray-300" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="text-lg font-semibold text-gray-900">
             {isEdit ? 'Edit Task' : 'New Task'}
           </h2>
           <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            onClick={handleClose}
+            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
             aria-label="Close modal"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -110,9 +145,9 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 pb-8 sm:pb-5">
           {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200">
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
               <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
               </svg>
@@ -121,8 +156,8 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
           )}
 
           {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-1.5">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -137,8 +172,8 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
           </div>
 
           {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-1.5">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -151,10 +186,10 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
             />
           </div>
 
-          {/* Status + Priority */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+          {/* Status + Priority — stacked on mobile, side-by-side on sm+ */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Status
               </label>
               <select
@@ -169,8 +204,8 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
               </select>
             </div>
 
-            <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-1.5">
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
                 Priority
               </label>
               <select
@@ -186,10 +221,10 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
             </div>
           </div>
 
-          {/* Due Date + Category */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+          {/* Due Date + Category — stacked on mobile, side-by-side on sm+ */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
                 Due Date
               </label>
               <input
@@ -201,8 +236,8 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
               />
             </div>
 
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-1.5">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                 Category
               </label>
               <input
@@ -218,19 +253,19 @@ export default function TaskModal({ task, onClose, onSubmit }: TaskModalProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={submitting}
-              className="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 rounded-full border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[48px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-full bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 active:bg-violet-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
