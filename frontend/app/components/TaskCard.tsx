@@ -3,6 +3,8 @@ import StatusBadge from './StatusBadge';
 
 interface TaskCardProps {
   task: Task;
+  index?: number;
+  visible?: boolean;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
 }
@@ -31,24 +33,61 @@ function PriorityBadge({ priority }: { priority: TaskPriority }) {
   );
 }
 
-export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+export default function TaskCard({ task, index = 0, visible = true, onEdit, onDelete }: TaskCardProps) {
   const isOverdue =
     task.dueDate &&
     new Date(task.dueDate) < new Date() &&
     task.status !== 'DONE';
 
   return (
-    <div className="group flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 hover:shadow-md hover:ring-gray-200 transition-all duration-200">
-      {/* Top row: status + priority badges + action buttons */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <StatusBadge status={task.status} />
-          <PriorityBadge priority={task.priority ?? 'MEDIUM'} />
+    <div
+      className={`flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100
+        hover:-translate-y-0.5 hover:shadow-lg
+        active:scale-95
+        transition-all duration-200
+        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
+      `}
+      style={{ transitionDelay: visible ? `${index * 50}ms` : '0ms' }}
+    >
+      {/* Badges row: status + priority + category */}
+      <div className="flex items-center gap-2 flex-wrap mb-3">
+        <StatusBadge status={task.status} />
+        <PriorityBadge priority={task.priority ?? 'MEDIUM'} />
+        {task.category && (
+          <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+            {task.category}
+          </span>
+        )}
+      </div>
+
+      {/* Title */}
+      <h3 className="text-lg font-semibold text-gray-900 leading-snug mb-2 line-clamp-2">
+        {task.title}
+      </h3>
+
+      {/* Description */}
+      {task.description ? (
+        <p className="flex-1 text-sm text-gray-500 leading-relaxed line-clamp-2 mb-4">
+          {task.description}
+        </p>
+      ) : (
+        <p className="flex-1 text-sm text-gray-300 italic mb-4">No description</p>
+      )}
+
+      {/* Footer: date left, action buttons right — always visible */}
+      <div className="flex items-center justify-between pt-3 border-t border-gray-50 gap-2">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-xs text-gray-400 truncate">Created {formatDate(task.createdAt)}</span>
+          {task.dueDate && (
+            <span className={`text-xs font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+              Due {formatDate(task.dueDate)}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onEdit(task)}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            className="flex items-center justify-center rounded-xl p-2 text-gray-400 hover:bg-violet-50 hover:text-violet-600 active:bg-violet-100 transition-colors min-h-[44px] min-w-[44px]"
             aria-label="Edit task"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -57,7 +96,7 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           </button>
           <button
             onClick={() => onDelete(task)}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+            className="flex items-center justify-center rounded-xl p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 active:bg-red-100 transition-colors min-h-[44px] min-w-[44px]"
             aria-label="Delete task"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -65,39 +104,6 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
             </svg>
           </button>
         </div>
-      </div>
-
-      {/* Title */}
-      <h3 className="text-base font-semibold text-gray-900 leading-snug mb-2 line-clamp-2">
-        {task.title}
-      </h3>
-
-      {/* Description */}
-      {task.description ? (
-        <p className="flex-1 text-sm text-gray-500 leading-relaxed line-clamp-3 mb-3">
-          {task.description}
-        </p>
-      ) : (
-        <p className="flex-1 text-sm text-gray-300 italic mb-3">No description</p>
-      )}
-
-      {/* Category tag */}
-      {task.category && (
-        <div className="mb-3">
-          <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-            {task.category}
-          </span>
-        </div>
-      )}
-
-      {/* Footer: created date + due date */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-50 gap-2 flex-wrap">
-        <span className="text-xs text-gray-400">Created {formatDate(task.createdAt)}</span>
-        {task.dueDate && (
-          <span className={`text-xs font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
-            Due {formatDate(task.dueDate)}
-          </span>
-        )}
       </div>
     </div>
   );
