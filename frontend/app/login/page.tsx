@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginUser, registerUser } from '../lib/api';
 import { setUser } from '../lib/auth';
@@ -16,7 +16,7 @@ const FEATURES = [
 const inputBase =
   'w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition-all duration-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:bg-white';
 
-// ─── Reusable icons ─────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 function MailIcon() {
   return (
@@ -55,12 +55,11 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-// ─── Brand panel (gradient left half on desktop) ─────────────────────────────
+// ─── Brand panel ──────────────────────────────────────────────────────────────
 
 function BrandPanel() {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-12 text-white">
-      {/* Logo */}
       <div className="flex flex-col items-center text-center mb-12">
         <div
           className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 ring-1 ring-white/20 mb-6"
@@ -78,7 +77,6 @@ function BrandPanel() {
             <rect x="9.5" y="16" width="8"   height="1.2" rx="0.6" fill="white" opacity="0.9"/>
           </svg>
         </div>
-
         <h1
           className="text-3xl font-bold tracking-tight mb-2"
           style={{ textShadow: '0 2px 16px rgba(0,0,0,0.25)' }}
@@ -93,7 +91,6 @@ function BrandPanel() {
         </p>
       </div>
 
-      {/* Feature list */}
       <div className="flex flex-col gap-4 w-full max-w-xs">
         {FEATURES.map((feature) => (
           <div key={feature} className="flex items-center gap-3">
@@ -115,27 +112,32 @@ function BrandPanel() {
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AuthPage() {
   const router = useRouter();
 
-  // Layout + animation state
-  const [mode, setMode] = useState<Mode>('login');
+  // `mode` drives panel positions; `displayMode` drives form content.
+  // They are set at different points in the switchMode sequence so the
+  // form content can crossfade independently of the panel slide.
+  const [mode, setMode]               = useState<Mode>('login');
+  const [displayMode, setDisplayMode] = useState<Mode>('login');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [blur, setBlur]               = useState(false);
+  const [formVisible, setFormVisible] = useState(true);
+  const [mounted, setMounted]         = useState(false);
+  const [isDesktop, setIsDesktop]     = useState(false);
+  const pendingTimers                 = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Shared form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // Form fields
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirm, setConfirm]         = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showConfirm, setShowConfirm]   = useState(false);
 
-  // Page mount + desktop detection
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 10);
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -145,24 +147,51 @@ export default function AuthPage() {
     return () => {
       clearTimeout(t);
       mq.removeEventListener('change', onMq);
+      pendingTimers.current.forEach(clearTimeout);
     };
   }, []);
 
-  function switchMode(next: Mode) {
-    if (next === mode || isTransitioning) return;
-    setIsTransitioning(true);
-    setMode(next);
-    // Reset form
+  function resetFormState() {
     setEmail('');
     setPassword('');
     setConfirm('');
     setError('');
     setShowPassword(false);
     setShowConfirm(false);
-    setTimeout(() => setIsTransitioning(false), 500);
   }
 
-  // ── Auth handlers (logic unchanged from original) ────────────────────────
+  function switchMode(next: Mode) {
+    if (next === mode || isTransitioning) return;
+
+    // Abort any in-flight transition
+    pendingTimers.current.forEach(clearTimeout);
+    pendingTimers.current = [];
+
+    // Step 1 — 0ms: add blur + scale, fade form content out
+    setIsTransitioning(true);
+    setBlur(true);
+    setFormVisible(false);
+
+    // Step 2 — 50ms: panels start sliding into new positions
+    const t1 = setTimeout(() => setMode(next), 50);
+
+    // Step 3 — 200ms: form is now invisible; swap content and fade in
+    const t2 = setTimeout(() => {
+      setDisplayMode(next);
+      resetFormState();
+      setFormVisible(true);
+    }, 200);
+
+    // Step 4 — 300ms: blur dissolves (panels are still sliding)
+    const t3 = setTimeout(() => setBlur(false), 300);
+
+    // Step 5 — 600ms: slide completes; remove scale + opacity
+    const t4 = setTimeout(() => setIsTransitioning(false), 600);
+
+    pendingTimers.current = [t1, t2, t3, t4];
+  }
+
+  // ── Auth handlers (logic unchanged) ──────────────────────────────────────
 
   async function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -223,207 +252,252 @@ export default function AuthPage() {
     }
   }
 
-  // ── Panel slide transform (desktop only) ─────────────────────────────────
+  // ── Computed animation styles ─────────────────────────────────────────────
 
-  const panelTransition = 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)';
-
-  const brandStyle: React.CSSProperties = {
-    transition: panelTransition,
-    opacity: isTransitioning ? 0.88 : 1,
-    transform: isDesktop && mode === 'register' ? 'translateX(100%)' : 'translateX(0%)',
+  // Page background shifts between a violet tint (login) and indigo tint (register)
+  const pageStyle: React.CSSProperties = {
+    background: mode === 'login'
+      ? 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)'
+      : 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+    transition: 'background 600ms ease-in-out',
   };
 
-  const formStyle: React.CSSProperties = {
-    transition: panelTransition,
-    opacity: isTransitioning ? 0.88 : 1,
+  // Outer wrappers: pure translateX slide — smooth ease-in-out-cubic
+  const SLIDE_TRANSITION = 'transform 600ms cubic-bezier(0.65, 0, 0.35, 1)';
+
+  const brandSlideStyle: React.CSSProperties = {
+    transform: isDesktop && mode === 'register' ? 'translateX(100%)' : 'translateX(0%)',
+    transition: SLIDE_TRANSITION,
+  };
+  const formSlideStyle: React.CSSProperties = {
     transform: isDesktop && mode === 'register' ? 'translateX(-100%)' : 'translateX(0%)',
+    transition: SLIDE_TRANSITION,
+  };
+
+  // Inner wrappers: scale + blur + opacity — quick in, quick out
+  const EFFECT_TRANSITION = 'opacity 300ms ease-in-out, transform 200ms ease-in-out, filter 300ms ease-in-out';
+
+  const brandEffectStyle: React.CSSProperties = {
+    opacity:    isTransitioning ? 0.7  : 1,
+    transform:  isTransitioning ? 'scale(0.98)' : 'scale(1)',
+    filter:     blur ? 'blur(2px)' : 'none',
+    transition: EFFECT_TRANSITION,
+    height: '100%',
+  };
+  const formEffectStyle: React.CSSProperties = {
+    transform:  isTransitioning ? 'scale(0.99)' : 'scale(1)',
+    filter:     blur ? 'blur(1px)' : 'none',
+    transition: EFFECT_TRANSITION,
+  };
+
+  // Form content: crossfade independently from panel slide
+  const formContentStyle: React.CSSProperties = {
+    opacity:    formVisible ? 1 : 0,
+    transform:  formVisible ? 'translateY(0)' : 'translateY(-10px)',
+    transition: formVisible
+      ? 'opacity 300ms ease-out, transform 300ms ease-out'
+      : 'opacity 150ms ease-in, transform 150ms ease-in',
   };
 
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden" style={pageStyle}>
 
-      {/* ── Left: brand panel (desktop only) ──────────────────────────── */}
+      {/* ── Brand panel: desktop left slot ─────────────────────────────── */}
+      {/* Outer: handles the horizontal slide */}
       <div
-        className="hidden lg:block w-1/2 shrink-0 bg-gradient-to-br from-violet-600 to-indigo-700"
-        style={brandStyle}
+        className="absolute inset-y-0 left-0 w-1/2 hidden lg:block"
+        style={brandSlideStyle}
       >
-        <BrandPanel />
+        {/* Inner: handles scale + blur + opacity */}
+        <div
+          className="bg-gradient-to-br from-violet-600 to-indigo-700 flex flex-col items-center justify-center"
+          style={brandEffectStyle}
+        >
+          <BrandPanel />
+        </div>
       </div>
 
-      {/* ── Right: form panel ─────────────────────────────────────────── */}
+      {/* ── Form panel: full screen on mobile, right slot on desktop ───── */}
+      {/* Outer: handles the horizontal slide (desktop only via isDesktop guard) */}
       <div
-        className="flex flex-1 items-center justify-center bg-white p-8 min-h-screen"
-        style={formStyle}
+        className="absolute inset-y-0 left-0 w-full lg:left-1/2 lg:w-1/2 flex flex-col overflow-y-auto"
+        style={formSlideStyle}
       >
-        {/* Page mount fade-in */}
+        {/* Inner: handles scale + blur; also provides centered layout */}
         <div
-          className={`w-full max-w-sm transition-all duration-[400ms] ease-out ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
-          }`}
+          className="flex flex-1 items-center justify-center bg-white p-8"
+          style={formEffectStyle}
         >
-          {/* key={mode} triggers slideDown animation on every mode switch */}
-          <div key={mode} style={{ animation: 'slideDown 0.35s ease-out' }}>
+          {/* Page-mount fade-in (runs once on initial render) */}
+          <div
+            className={`w-full max-w-sm transition-all duration-[400ms] ease-out ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+            }`}
+          >
+            {/* Form content: crossfades on mode switch */}
+            <div style={formContentStyle}>
 
-            {/* Heading */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-                {mode === 'login' ? 'Welcome back' : 'Create your account'}
-              </h2>
-              <p className="mt-1.5 text-sm text-gray-500">
-                {mode === 'login'
-                  ? 'Sign in to your Task Manager account'
-                  : 'Start organizing your work today'}
-              </p>
-            </div>
+              {/* Heading — driven by displayMode */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+                  {displayMode === 'login' ? 'Welcome back' : 'Create your account'}
+                </h2>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  {displayMode === 'login'
+                    ? 'Sign in to your Task Manager account'
+                    : 'Start organizing your work today'}
+                </p>
+              </div>
 
-            {/* Error alert */}
-            {error && (
-              <div
-                className="mb-6 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                style={{ animation: 'slideDown 0.2s ease-out' }}
+              {/* Error alert */}
+              {error && (
+                <div
+                  className="mb-6 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                  style={{ animation: 'slideDown 0.2s ease-out' }}
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <form
+                onSubmit={displayMode === 'login' ? handleLoginSubmit : handleRegisterSubmit}
+                className="space-y-4"
               >
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                {error}
-              </div>
-            )}
-
-            {/* Form */}
-            <form
-              onSubmit={mode === 'login' ? handleLoginSubmit : handleRegisterSubmit}
-              className="space-y-4"
-            >
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <MailIcon />
-                  </span>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className={`${inputBase} pr-4`}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <LockIcon />
-                  </span>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'register' ? 'Min. 8 chars, uppercase, number' : '••••••••'}
-                    className={`${inputBase} pr-10`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <EyeIcon open={showPassword} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm password — register only */}
-              {mode === 'register' && (
+                {/* Email */}
                 <div>
-                  <label htmlFor="confirm" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Confirm Password
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                      <ShieldIcon />
+                      <MailIcon />
                     </span>
                     <input
-                      id="confirm"
-                      type={showConfirm ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      placeholder="••••••••"
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={`${inputBase} pr-4`}
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <LockIcon />
+                    </span>
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete={displayMode === 'login' ? 'current-password' : 'new-password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={displayMode === 'register' ? 'Min. 8 chars, uppercase, number' : '••••••••'}
                       className={`${inputBase} pr-10`}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirm((v) => !v)}
+                      onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      <EyeIcon open={showConfirm} />
+                      <EyeIcon open={showPassword} />
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-violet-700 hover:to-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    {mode === 'login' ? 'Signing in…' : 'Creating account…'}
-                  </span>
-                ) : mode === 'login' ? (
-                  'Sign In'
-                ) : (
-                  'Create Account'
+                {/* Confirm password — register only */}
+                {displayMode === 'register' && (
+                  <div>
+                    <label htmlFor="confirm" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <ShieldIcon />
+                      </span>
+                      <input
+                        id="confirm"
+                        type={showConfirm ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="••••••••"
+                        className={`${inputBase} pr-10`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                      >
+                        <EyeIcon open={showConfirm} />
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </form>
 
-            {/* Mode switch link */}
-            <p className="mt-8 text-center text-sm text-gray-500">
-              {mode === 'login' ? (
-                <>
-                  Don&apos;t have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => switchMode('register')}
-                    className="font-medium text-violet-600 hover:text-violet-700 transition-colors"
-                  >
-                    Create one
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => switchMode('login')}
-                    className="font-medium text-violet-600 hover:text-violet-700 transition-colors"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </p>
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-violet-700 hover:to-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      {displayMode === 'login' ? 'Signing in…' : 'Creating account…'}
+                    </span>
+                  ) : displayMode === 'login' ? (
+                    'Sign In'
+                  ) : (
+                    'Create Account'
+                  )}
+                </button>
+              </form>
 
+              {/* Mode switch */}
+              <p className="mt-8 text-center text-sm text-gray-500">
+                {displayMode === 'login' ? (
+                  <>
+                    Don&apos;t have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => switchMode('register')}
+                      className="font-medium text-violet-600 hover:text-violet-700 transition-colors"
+                    >
+                      Create one
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => switchMode('login')}
+                      className="font-medium text-violet-600 hover:text-violet-700 transition-colors"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </p>
+
+            </div>
           </div>
         </div>
       </div>
