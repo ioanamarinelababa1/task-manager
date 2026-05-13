@@ -25,7 +25,9 @@ const mockQueryBuilder = {
   orderBy: jest.fn().mockReturnThis(),
   skip: jest.fn().mockReturnThis(),
   take: jest.fn().mockReturnThis(),
+  setParameter: jest.fn().mockReturnThis(),
   getManyAndCount: jest.fn(),
+  getMany: jest.fn(),
 };
 
 const mockRepository = {
@@ -93,12 +95,12 @@ describe('TasksService', () => {
       );
     });
 
-    it('applies search filter with case-insensitive LIKE', async () => {
+    it('applies full-text search filter', async () => {
       mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockTask], 1]);
       await service.findAll(1, { search: 'test' });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'LOWER(task.title) LIKE LOWER(:search)',
-        { search: '%test%' },
+        "to_tsvector('english', task.title || ' ' || coalesce(task.description, '') || ' ' || coalesce(task.category, '')) @@ plainto_tsquery('english', :search)",
+        { search: 'test' },
       );
     });
 
@@ -281,6 +283,50 @@ describe('TasksService', () => {
       await expect(service.remove(mockTask.id, 2)).rejects.toThrow(
         ForbiddenException,
       );
+    });
+  });
+
+  describe('search', () => {
+    it('returns empty result for empty string without querying the DB', async () => {
+      const result = await service.search(1, '', 5);
+      expect(result).toEqual({ data: [], query: '', count: 0 });
+      expect(mockRepository.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it('returns empty result for query shorter than 2 characters', async () => {
+      const result = await service.search(1, 'a', 5);
+      expect(result).toEqual({ data: [], query: 'a', count: 0 });
+      expect(mockRepository.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it('sanitizes query: trims whitespace and truncates to 100 characters', async () => {
+      const longQuery = 'x'.repeat(120);
+      const truncated = 'x'.repeat(100);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+      await service.search(1, longQuery, 5);
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('plainto_tsquery'),
+        { query: truncated },
+      );
+      expect(mockQueryBuilder.setParameter).toHaveBeenCalledWith(
+        'rankQuery',
+        truncated,
+      );
+    });
+
+    it('filters results by userId', async () => {
+      mockQueryBuilder.getMany.mockResolvedValue([mockTask]);
+      await service.search(42, 'test query', 5);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'task.userId = :userId',
+        { userId: 42 },
+      );
+    });
+
+    it('respects limit parameter', async () => {
+      mockQueryBuilder.getMany.mockResolvedValue([mockTask]);
+      await service.search(1, 'test', 10);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
     });
   });
 });
