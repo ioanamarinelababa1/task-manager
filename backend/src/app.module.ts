@@ -51,6 +51,7 @@ const isDev = process.env.NODE_ENV !== 'production';
         synchronize: process.env.NODE_ENV !== 'production',
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsRun: process.env.NODE_ENV === 'production',
+        migrationsTransactionMode: 'each',
         ssl: { rejectUnauthorized: false },
       }),
       inject: [ConfigService],
