@@ -66,6 +66,41 @@ export class TasksController {
     return this.tasksService.findAll(req.user.id, query);
   }
 
+  @Get('search')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Full-text search across tasks' })
+  @ApiQuery({
+    name: 'q',
+    required: true,
+    type: String,
+    description: 'Search query',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max results (default 5, max 20)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Matching tasks ranked by relevance',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorised — missing or invalid JWT',
+  })
+  async search(
+    @Request() req: { user: { id: number } },
+    @Query('q') q: string,
+    @Query('limit') limit = 5,
+  ): Promise<{ data: Task[]; query: string; count: number }> {
+    return this.tasksService.search(
+      req.user.id,
+      q,
+      Math.min(Number(limit), 20),
+    );
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single task by ID' })

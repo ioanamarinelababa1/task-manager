@@ -167,3 +167,10 @@ export async function deleteTask(id: number): Promise<void> {
   const res = await apiFetch(`${API_BASE}/tasks/${String(id)}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to delete task: ${res.statusText}`);
 }
+
+export async function searchTasks(q: string, limit = 5): Promise<{ data: Task[]; query: string; count: number }> {
+  if (q.trim().length < 2) return { data: [], query: q, count: 0 };
+  const res = await apiFetch(`${API_BASE}/tasks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  if (!res.ok) throw new Error(`Failed to search tasks: ${res.statusText}`);
+  return res.json();
+}

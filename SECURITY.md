@@ -92,6 +92,8 @@ All string fields in `CreateTaskDto`, `UpdateTaskDto`, `RegisterDto`, and `Login
 ### 9. SQL Injection Prevention
 All database access uses TypeORM repository methods (`find`, `findOne`, `save`, `update`, `delete`). TypeORM generates parameterized queries for all of these — user input is never concatenated into SQL strings. No raw query strings exist in the codebase.
 
+**Search query sanitization:** Search queries are sanitized before reaching the database: trimmed of leading/trailing whitespace, limited to 100 characters maximum, and require a minimum of 2 characters to execute. PostgreSQL's `plainto_tsquery` function handles all special character escaping natively, preventing any tsvector injection.
+
 ### 10. Rate Limiting
 `@nestjs/throttler` (v6) applies rate limits per IP:
 

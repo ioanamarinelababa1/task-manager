@@ -48,9 +48,10 @@ export class TasksService {
       if (status) qb.andWhere('task.status = :status', { status });
       if (priority) qb.andWhere('task.priority = :priority', { priority });
       if (search)
-        qb.andWhere('LOWER(task.title) LIKE LOWER(:search)', {
-          search: `%${search}%`,
-        });
+        qb.andWhere(
+          "to_tsvector('english', task.title || ' ' || coalesce(task.description, '') || ' ' || coalesce(task.category, '')) @@ plainto_tsquery('english', :search)",
+          { search },
+        );
 
       qb.orderBy(`task.${sortBy}`, order)
         .skip((page - 1) * limit)
@@ -118,5 +119,38 @@ export class TasksService {
         throw err;
       throw new InternalServerErrorException('Failed to delete task');
     }
+  }
+
+  async search(
+    userId: number,
+    query: string,
+    limit = 5,
+  ): Promise<{ data: Task[]; query: string; count: number }> {
+    if (!query || query.trim().length < 2) {
+      return { data: [], query, count: 0 };
+    }
+
+    const sanitizedQuery = query.trim().substring(0, 100);
+
+    const results = await this.tasksRepository
+      .createQueryBuilder('task')
+      .where('task.userId = :userId', { userId })
+      .andWhere(
+        "to_tsvector('english', task.title || ' ' || coalesce(task.description, '') || ' ' || coalesce(task.category, '')) @@ plainto_tsquery('english', :query)",
+        { query: sanitizedQuery },
+      )
+      .orderBy(
+        "ts_rank(to_tsvector('english', task.title || ' ' || coalesce(task.description, '') || ' ' || coalesce(task.category, '')), plainto_tsquery('english', :rankQuery))",
+        'DESC',
+      )
+      .setParameter('rankQuery', sanitizedQuery)
+      .take(limit)
+      .getMany();
+
+    return {
+      data: results,
+      query: sanitizedQuery,
+      count: results.length,
+    };
   }
 }

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../auth/user.entity';
@@ -22,6 +23,9 @@ export enum TaskPriority {
   HIGH = 'HIGH',
 }
 
+@Index(['userId', 'status'])
+@Index(['userId', 'priority'])
+@Index(['userId', 'createdAt'])
 @Entity()
 export class Task {
   @ApiProperty({ example: 1, description: 'Unique task identifier' })
