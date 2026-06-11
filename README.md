@@ -9,7 +9,6 @@ Task Manager is a production-ready full-stack starter built with NestJS, Postgre
 ## Live Demo
 
 > Live demo: [task-manager-zeta-sepia.vercel.app](https://task-manager-zeta-sepia.vercel.app)
-> A GIF demo is coming soon — contributions welcome!
 
 ## Quick Start
 
@@ -233,9 +232,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-Backend runs on: http://localhost:3001  
-Frontend runs on: http://localhost:3000
 
 ## Docker
 
