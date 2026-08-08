@@ -24,7 +24,7 @@
     "migration:revert": "npx typeorm-ts-node-commonjs migration:revert -d src/data-source.ts"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.1",
+    "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
